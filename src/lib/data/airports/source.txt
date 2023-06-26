@@ -1,0 +1,2 @@
+https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_10m_airports.geojson
+https://www.naturalearthdata.com/downloads/10m-cultural-vectors/
