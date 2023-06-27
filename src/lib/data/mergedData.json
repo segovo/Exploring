@@ -671,7 +671,7 @@
             -17.79562720702393
         ],
         "difficulty": 3,
-        "population": null
+        "population": 926276
     },
     "Faeroe Islands": {
         "ISO2": "FO",
@@ -1315,7 +1315,7 @@
             "North Africa"
         ],
         "difficulty": 2,
-        "population": null
+        "population": 6678567
     },
     "Morocco": {
         "ISO2": "MA",
@@ -1850,7 +1850,7 @@
             62.61934523897718
         ],
         "difficulty": 0,
-        "population": null
+        "population": 144478050
     },
     "Rwanda": {
         "ISO2": "RW",
@@ -2164,7 +2164,7 @@
             "Asia"
         ],
         "difficulty": 1,
-        "population": null
+        "population": 23894394
     },
     "Tanzania": {
         "ISO2": "TZ",
@@ -2383,7 +2383,7 @@
             "West Africa"
         ],
         "difficulty": 2,
-        "population": null
+        "population": 25069229
     },
     "Democratic Republic of the Congo": {
         "ISO2": "CD",
@@ -2394,7 +2394,7 @@
             "Central Africa"
         ],
         "difficulty": 2,
-        "population": null
+        "population": 84068091
     },
     "Republic of the Congo": {
         "ISO2": "CG",
@@ -2405,7 +2405,7 @@
             "Central Africa"
         ],
         "difficulty": 2,
-        "population": null
+        "population": 5244363
     },
     "Northern Cyprus": {
         "color": 3,
@@ -2427,7 +2427,7 @@
             "Southern Africa"
         ],
         "difficulty": 2,
-        "population": null
+        "population": 1160164
     },
     "Falkland Islands": {
         "ISO2": "FK",
@@ -2538,7 +2538,7 @@
             "East Africa"
         ],
         "difficulty": 2,
-        "population": null
+        "population": 15008154
     },
     "Sint Maarten": {
         "ISO2": "SX",
@@ -2587,7 +2587,7 @@
             39.17941584039857
         ],
         "difficulty": 0,
-        "population": null
+        "population": 326687501
     },
     "Vatican": {
         "ISO2": "VA",
