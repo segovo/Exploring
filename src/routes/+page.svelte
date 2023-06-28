@@ -5,7 +5,7 @@
 	import { onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import * as topojsonClient from 'topojson-client';
-	import { geoPatterson, geoRobinson } from 'd3-geo-projection';
+	import { geoPatterson } from 'd3-geo-projection';
 	import _ from 'lodash';
 	import * as turf from '@turf/turf';
 	// import * as simpleWorldMap from '$lib/map/simpleworld.json';
@@ -15,24 +15,28 @@
 	import * as neworldMap from '$lib/map/ne_50m_admin_0_countries_lakes.json';
 	import * as neboundaryLinesStates from '$lib/map/ne_50m_admin_1_states_provinces_lakes_lines.json';
 	import * as boundaryLines from '$lib/map/ne_50m_admin_0_boundary_lines_land.json';
-	import * as nePopulatedPlaces from '$lib/map/ne_50m_populated_places_simple.json';
+	import * as populatedPlaces from '$lib/map/ne_50m_populated_places_simple.json';
+	import * as states from '$lib/map/ne_50m_admin_1_states_provinces_lakes.json';
+	import * as urbanAreas from '$lib/map/ne_50m_urban_areas.json';
 	// import * as countryJson from '$lib/data/countries.json';
 	import * as countryJson from '$lib/data/mergedData.json';
 	import * as countryCenters from '$lib/data/countrycenters.json';
 	import * as importAirports from '$lib/data/airports/ne_10m_airports.json';
 	import airportIcon from '$lib/icons/airport.svg';
 
+	console.log('states: ', states);
+
 	let airports = importAirports;
 	// const topojson = worldMap;
 	// const geojson = topojsonClient.feature(topojson, Object.keys(topojson.objects)[0]);
 	const geojson = neworldMap;
-	const populatedPlaces = nePopulatedPlaces;
 	// const geojson = simpleWorldMap;
 
 	const dataset = geojson.features;
 
 	let countryNamesDataset = geojson.features;
 	let cityNamesDataset = populatedPlaces.features;
+	let stateNamesDataset = states.features;
 
 	const countryData = Object.entries(countryJson.default);
 
@@ -121,12 +125,12 @@
 		// } else {
 		// 	geojson.properties.center = turf.centerOfMass(geojson);
 		// }
-		geojson.properties.center = {};
-		geojson.properties.center.geometry = {};
-		geojson.properties.center.geometry.coordinates = [
-			geojson.properties.LABEL_X,
-			geojson.properties.LABEL_Y
-		];
+		geojson.properties.center = [geojson.properties.LABEL_X, geojson.properties.LABEL_Y];
+		// geojson.properties.center.geometry = {};
+		// geojson.properties.center.geometry.coordinates = [
+		// 	geojson.properties.LABEL_X,
+		// 	geojson.properties.LABEL_Y
+		// ];
 		// let max_area_polygon;
 		// let max_area = 0;
 
@@ -184,7 +188,8 @@
 		if (e.sourceEvent) mousePos = { x: e.sourceEvent.clientX, y: e.sourceEvent.clientY };
 	}
 
-	let projection = geoPatterson();
+	// let projection = geoPatterson();
+	let projection = d3.geoAzimuthalEqualArea().scale(200)
 
 	// $: projection = d3
 	// .geoNaturalEarth1()
@@ -367,8 +372,8 @@
 
 	countryNamesDataset.forEach((point) => {
 		let pointData = {};
-		pointData.x = projection(point.properties.center.geometry.coordinates)[0];
-		pointData.y = projection(point.properties.center.geometry.coordinates)[1];
+		pointData.x = projection(point.properties.center)[0];
+		pointData.y = projection(point.properties.center)[1];
 		pointData.point = point;
 		pointData.type = 'tier1';
 		// pointData.point.properties.labelrank = point.properties.LABELRANK - 1;
@@ -384,11 +389,33 @@
 		let pointData = {};
 		pointData.x = projection(point.geometry.coordinates)[0];
 		pointData.y = projection(point.geometry.coordinates)[1];
+		point.properties.center = point.geometry.coordinates;
 		pointData.point = point;
 		pointData.type = 'tier2';
 
 		tier2data.push(pointData);
 	});
+
+	stateNamesDataset.forEach((point) => {
+		console.log('adding');
+		let pointData = {};
+
+		const centerX = (point.bbox[0] + point.bbox[2]) / 2;
+		const centerY = (point.bbox[1] + point.bbox[3]) / 2;
+		point.properties.center = [centerX, centerY];
+		// pointData.x = projection(point.geometry.coordinates)[0];
+		// pointData.y = projection(point.geometry.coordinates)[1];
+		pointData.x = projection(centerX);
+		pointData.y = projection(centerY);
+		pointData.point = point;
+
+		tier2data.push(pointData);
+	});
+
+	// 	pointData.type = 'tier1';
+
+	// 	tier2data.push(pointData);
+	// });
 
 	// tier1data.sort((a, b) => (a.point.properties.labelrank > b.point.properties.labelrank ? -1 : 1));
 
@@ -396,11 +423,14 @@
 		let pointData = {};
 		pointData.x = projection(airport.geometry.coordinates)[0];
 		pointData.y = projection(airport.geometry.coordinates)[1];
+		airport.properties.center = airport.geometry.coordinates;
 		pointData.point = airport;
 		pointData.type = 'tier3';
 
 		tier3data.push(pointData);
 	});
+
+	console.log('LENGTH: ', tier2data.length);
 
 	// let zoomLevels = [
 	// 	{ k: 2.1, radius: 20, hasRun: false },
@@ -455,43 +485,7 @@
 					}
 				}
 
-				const quadtree = d3
-					.quadtree()
-					.x((d) => d.x)
-					.y((d) => d.y);
-
-				// if (transform.k < zoomLevels[8].k) {
-				quadtree.addAll(tier1data);
-				tier1data.forEach((point) => {
-					setVisibility(point, quadtree);
-				});
-				// } else {
-				//     tier1data.forEach((point) => {
-				//         point.point.properties.visible = false;
-				//     });
-				// }
-
-				if (transform.k > zoomLevels[2].k) {
-					quadtree.addAll(tier2data);
-					tier2data.forEach((point) => {
-						setVisibility(point, quadtree);
-					});
-				} else {
-					tier2data.forEach((point) => {
-						point.point.properties.visible = false;
-					});
-				}
-
-				if (transform.k > zoomLevels[6].k) {
-					quadtree.addAll(tier3data);
-					tier3data.forEach((point) => {
-						setVisibility(point, quadtree);
-					});
-				} else {
-					tier3data.forEach((point) => {
-						point.point.properties.visible = false;
-					});
-				}
+				updateVisibilities();
 
 				if (level.hasRun === false && transform.k > level.k) {
 					level.hasRun = true;
@@ -499,15 +493,77 @@
 					level.hasRun = false;
 				}
 
-				console.log('SIZE: ', quadtree.size());
-				airports = airports;
-				countryNamesDataset = countryNamesDataset;
-				cityNamesDataset = cityNamesDataset;
 				zoomLevels = zoomLevels;
 				// console.log(dataset);
 				// airports = airports;
 			}
 		});
+	}
+
+	function updateVisibilities() {
+		const quadtree = d3
+			.quadtree()
+			.x((d) => d.x)
+			.y((d) => d.y);
+
+		// if (transform.k < zoomLevels[8].k) {
+		let visibleTier1 = [];
+		let visibleTier2 = [];
+		let visibleTier3 = [];
+
+		tier1data.forEach((datum) => {
+			if (pointIsInViewbox(projection(datum.point.properties.center))) {
+				visibleTier1.push(datum);
+			}
+		});
+
+		quadtree.addAll(visibleTier1);
+		visibleTier1.forEach((point) => {
+			setVisibility(point, quadtree);
+		});
+
+		if (transform.k > zoomLevels[2].k) {
+			tier2data.forEach((datum) => {
+				if (pointIsInViewbox(projection(datum.point.properties.center))) {
+					visibleTier2.push(datum);
+				}
+			});
+
+			quadtree.addAll(visibleTier2);
+			visibleTier2.forEach((point) => {
+				setVisibility(point, quadtree);
+			});
+		} else {
+			tier2data.forEach((point) => {
+				point.point.properties.visible = false;
+			});
+		}
+
+		if (transform.k > zoomLevels[6].k) {
+			tier3data.forEach((datum) => {
+				if (pointIsInViewbox(projection(datum.point.properties.center))) {
+					visibleTier3.push(datum);
+				}
+			});
+
+			quadtree.addAll(visibleTier3);
+			visibleTier3.forEach((point) => {
+				setVisibility(point, quadtree);
+			});
+		} else {
+			tier3data.forEach((point) => {
+				point.point.properties.visible = false;
+			});
+		}
+
+		console.log('visibleTier1: ', visibleTier1);
+		console.log('visibleTier2: ', visibleTier2);
+		console.log('visibleTier3: ', visibleTier3);
+		console.log('SIZE: ', quadtree.size());
+		airports = airports;
+		countryNamesDataset = countryNamesDataset;
+		stateNamesDataset = stateNamesDataset;
+		cityNamesDataset = cityNamesDataset;
 	}
 
 	function screenToVirtual(point, transform) {
@@ -555,10 +611,12 @@
 
 		if (distanceX > 100 / transform.k || distanceY > 100 / transform.k) {
 			console.log('View box moved by more than 200 units.');
-			countryNamesDataset = countryNamesDataset;
-			cityNamesDataset = cityNamesDataset;
+			updateVisibilities();
+			// countryNamesDataset = countryNamesDataset;
+			// stateNamesDataset = stateNamesDataset;
+			// cityNamesDataset = cityNamesDataset;
 			prevViewboxCoords = currentViewboxCoords;
-            boundaryLinesStates = boundaryLinesStates
+			boundaryLinesStates = boundaryLinesStates;
 		}
 	}
 
@@ -624,6 +682,11 @@
 				class="country"
 			/>
 		{/each}
+		{#if transform.k > zoomLevels[9].k}
+			{#each urbanAreas.features as data}
+				<path d={path(data)} fill="#FCFBF3" stroke="none" class="country" />
+			{/each}
+		{/if}
 		{#if transform.k > zoomLevels[2].k}
 			{#each boundaryLinesStates as boundaryLine}
 				{#if pointIsInViewbox(projection(boundaryLine.center.geometry.coordinates))}
@@ -670,11 +733,11 @@
 		{#if true}
 			{#each airports.features as airport}
 				{#if airport.properties.visible}
-					{#if pointIsInViewbox(projection(airport.geometry.coordinates))}
+					{#if pointIsInViewbox(projection(airport.properties.center))}
 						{#if transform.k > 70}
 							<svg
-								x={projection(airport.geometry.coordinates)[0] - 1 / 2}
-								y={projection(airport.geometry.coordinates)[1] - 1 / 2}
+								x={projection(airport.properties.center)[0] - 1 / 2}
+								y={projection(airport.properties.center)[1] - 1 / 2}
 								width="1px"
 								height="1px"
 								viewBox="0 0 13 13"
@@ -766,8 +829,8 @@
 							</svg>
 						{:else}
 							<svg
-								x={projection(airport.geometry.coordinates)[0] - Math.max(18 / transform.k, 1) / 2}
-								y={projection(airport.geometry.coordinates)[1] - Math.max(18 / transform.k, 1) / 2}
+								x={projection(airport.properties.center)[0] - Math.max(18 / transform.k, 1) / 2}
+								y={projection(airport.properties.center)[1] - Math.max(18 / transform.k, 1) / 2}
 								width={Math.max(18 / transform.k, 1)}
 								height={Math.max(18 / transform.k, 1)}
 								viewBox="0 0 30 30"
@@ -788,19 +851,19 @@
 		{/if}
 		{#each cityNamesDataset as data, i}
 			{#if data.properties.visible}
-				{#if pointIsInViewbox(projection(data.geometry.coordinates))}
+				{#if pointIsInViewbox(projection(data.properties.center))}
 					<!-- <path d={path(data)} fill="none" stroke="black" stroke-width="0.1" /> -->
 
 					<text
-						x={projection(data.geometry.coordinates)[0]}
-						y={projection(data.geometry.coordinates)[1] - 12 / transform.k}
+						x={projection(data.properties.center)[0]}
+						y={projection(data.properties.center)[1] - 12 / transform.k}
 						font-size={(10 + 5 * (data.properties.pop_min / 14608512)) / transform.k}
 						stroke-width={(1.32 + 0.66 * (data.properties.pop_min / 14608512)) / transform.k}
 						class="city-name">{data.properties.name}</text
 					>
 					<circle
-						cx={projection(data.geometry.coordinates)[0]}
-						cy={projection(data.geometry.coordinates)[1]}
+						cx={projection(data.properties.center)[0]}
+						cy={projection(data.properties.center)[1]}
 						r={(1.5 + 1.5 * (data.properties.pop_min / 14608512)) / transform.k}
 						fill="white"
 						stroke="black"
@@ -809,14 +872,29 @@
 				{/if}
 			{/if}
 		{/each}
+		{#each stateNamesDataset as data}
+			{#if data.properties.visible}
+				{#if pointIsInViewbox(projection(data.properties.center))}
+					<text
+						x={projection(data.properties.center)[0]}
+						y={projection(data.properties.center)[1]}
+						font-size={10 / transform.k}
+						stroke-width={2 / transform.k}
+						fill="#814b6c"
+						stroke="#eef6e8"
+						class="country-name">{data.properties.postal}</text
+					>
+				{/if}
+			{/if}
+		{/each}
 		{#each countryNamesDataset as data, i}
 			{#if data.properties.visible || data.properties.NAME_EN === selected?.properties.NAME_EN}
-				{#if pointIsInViewbox(projection(data.properties.center.geometry.coordinates))}
+				{#if pointIsInViewbox(projection(data.properties.center))}
 					<!-- font-size={15 / transform.k} -->
 
 					<text
-						x={projection(data.properties.center.geometry.coordinates)[0]}
-						y={projection(data.properties.center.geometry.coordinates)[1]}
+						x={projection(data.properties.center)[0]}
+						y={projection(data.properties.center)[1]}
 						font-size={15 / transform.k}
 						stroke-width={2 / transform.k}
 						fill={data.properties.NAME_EN === selected?.properties.NAME_EN ? '#0085FF' : '#814b6c'}
