@@ -13,7 +13,7 @@
 	// import * as worldMap from '$lib/map/world.json';
 	// import * as veryComplexWorldMap from '$lib/map/ne_10m_admin_0_countries.json';
 	import * as neworldMap from '$lib/map/ne_50m_admin_0_countries_lakes.json';
-    // import * as neworldMap from '$lib/map/ne_110m_admin_0_countries_lakes.json'
+	// import * as neworldMap from '$lib/map/ne_110m_admin_0_countries_lakes.json'
 	import * as neboundaryLinesStates from '$lib/map/ne_50m_admin_1_states_provinces_lakes_lines.json';
 	import * as neboundaryLines from '$lib/map/ne_50m_admin_0_boundary_lines_land.json';
 	import * as populatedPlaces from '$lib/map/ne_50m_populated_places_simple.json';
@@ -75,8 +75,8 @@
 		}
 	});
 
-    // dataset.forEach((geojson) => {
-    //     geojson.properties.center = turf.centerOfMass(geojson);
+	// dataset.forEach((geojson) => {
+	//     geojson.properties.center = turf.centerOfMass(geojson);
 	// });
 
 	// countryData.forEach((country) => {
@@ -90,18 +90,18 @@
 	// 	// 	console.log('index not found for ', country[0]);
 	// 	// }
 	// });
-    // let dataset = [];
-    // geojson.features.forEach((geojson, i) => {
+	// let dataset = [];
+	// geojson.features.forEach((geojson, i) => {
 	// 	const chunks = turf.lineChunk(geojson, 1000);
 	// 	chunks.features.forEach((chunk) => {
 	// 		chunk.center = turf.centroid(chunk);
 	// 		boundaryLines.push(chunk);
 	// 	});
 	// });
-    geojson.features.forEach((geojson) => {
-        geojson.bbox = turf.bbox(geojson)
-    })
-    console.log('dataset: ', dataset)
+	geojson.features.forEach((geojson) => {
+		geojson.bbox = turf.bbox(geojson);
+	});
+	console.log('dataset: ', dataset);
 
 	let boundaryLines = [];
 	neboundaryLines.features.forEach((geojson, i) => {
@@ -112,8 +112,7 @@
 		});
 	});
 
-
-    console.log('boundaryLines: ', boundaryLines)
+	console.log('boundaryLines: ', boundaryLines);
 
 	let boundaryLinesStates = [];
 	neboundaryLinesStates.geometries.forEach((geojson, i) => {
@@ -210,39 +209,38 @@
 		mousePos = { x: e.clientX, y: e.clientY };
 	}
 
-
-    let transformReset = false;
+	let transformReset = false;
 
 	function zoomed(e) {
-        const t = e.transform;
+		const t = e.transform;
 
-        if ((0 - (t.x / t.k)) > mapRealRightEdge) {
-            //DEBUG
-            // console.log('INFORMATION: ', [
-            //     {
-            //         mapRealLeftEdge,
-            //         'mapRealLeftEdge*t.k': mapRealLeftEdge*t.k,
-            //     },
-            //     {
-            //         't.k': t.k,
-            //         't.x': t.x,
-            //         '0-t.x': 0-t.x,
-            //         '0-t.x/t.k': 0-t.x/t.k,
-            //         'mapRealWidth': mapRealWidth,
-            //         'mapRealLeftEdge': mapRealLeftEdge,
-            //         'mapRealRightEdge': mapRealRightEdge,
-            //         'mapRealWidth-mapRealLeftEdge': mapRealWidth-mapRealLeftEdge,
-            //         '(mapRealWidth-mapRealLeftEdge)*t.k': (mapRealWidth-mapRealLeftEdge)*t.k,
-            //         '(0 - t.x - ((mapRealWidth-mapRealLeftEdge) * t.k))': (0 - t.x - ((mapRealWidth-mapRealLeftEdge) * t.k))
-            //     }
-            // ])
+		if (0 - t.x / t.k > mapRealRightEdge) {
+			//DEBUG
+			// console.log('INFORMATION: ', [
+			//     {
+			//         mapRealLeftEdge,
+			//         'mapRealLeftEdge*t.k': mapRealLeftEdge*t.k,
+			//     },
+			//     {
+			//         't.k': t.k,
+			//         't.x': t.x,
+			//         '0-t.x': 0-t.x,
+			//         '0-t.x/t.k': 0-t.x/t.k,
+			//         'mapRealWidth': mapRealWidth,
+			//         'mapRealLeftEdge': mapRealLeftEdge,
+			//         'mapRealRightEdge': mapRealRightEdge,
+			//         'mapRealWidth-mapRealLeftEdge': mapRealWidth-mapRealLeftEdge,
+			//         '(mapRealWidth-mapRealLeftEdge)*t.k': (mapRealWidth-mapRealLeftEdge)*t.k,
+			//         '(0 - t.x - ((mapRealWidth-mapRealLeftEdge) * t.k))': (0 - t.x - ((mapRealWidth-mapRealLeftEdge) * t.k))
+			//     }
+			// ])
 
-            t.x =  -(0 - t.x - (mapRealWidth * t.k))
-            // transform.x = -(leftEdge - (mapWidth * zoom))
-        } else if (((clientX / t.k) - (t.x / t.k)) < mapRealLeftEdge) {
-            t.x =  -(0 - t.x + (mapRealWidth*t.k))
-            // transform.x = -(leftEdge + (mapWidth * zoom))
-        }
+			t.x = -(0 - t.x - mapRealWidth * t.k);
+			// transform.x = -(leftEdge - (mapWidth * zoom))
+		} else if (clientX / t.k - t.x / t.k < mapRealLeftEdge) {
+			t.x = -(0 - t.x + mapRealWidth * t.k);
+			// transform.x = -(leftEdge + (mapWidth * zoom))
+		}
 
 		// t.x = Math.min(clientX / 2, Math.max(t.x, clientX / 2 - clientX * t.k));
 		// t.y = Math.min(clientY / 2, Math.max(t.y, clientY / 2 - clientY * t.k));
@@ -268,8 +266,8 @@
 		.bounds(geojson);
 	console.log('mapSize', mapSize);
 
-    const mapRealLeftEdge = mapSize[0][0]
-    const mapRealRightEdge = mapSize[1][0]
+	const mapRealLeftEdge = mapSize[0][0];
+	const mapRealRightEdge = mapSize[1][0];
 	const mapRealWidth = mapSize[1][0] - mapSize[0][0];
 
 	// mapSize[0][0] = mapSize[0][0] - 200;
@@ -282,7 +280,10 @@
 	let zoom = d3
 		.zoom()
 		.scaleExtent([2, 1024])
-		.translateExtent([[mapSize[0][0]-mapRealWidth*2, mapSize[0][1]], [mapSize[1][0]+mapRealWidth*2, mapSize[1][1]]])
+		.translateExtent([
+			[mapSize[0][0] - mapRealWidth * 2, mapSize[0][1]],
+			[mapSize[1][0] + mapRealWidth * 2, mapSize[1][1]]
+		])
 		.on('zoom', zoomed)
 		.clickDistance(10);
 
@@ -327,6 +328,8 @@
 		d3.zoomIdentity.x = -720;
 		d3.zoomIdentity.y = -170;
 		transform = d3.zoomIdentity;
+		requestAnimationFrame(loop);
+
 		// setTimeout(() => {
 		// 	console.error('d3: ', d3.zoomIdentity);
 		// 	// const initialTransform = d3.zoomIdentity{ k: 6.147500725152074, x: -2193.8890833797695, y: -634.4553424635553 }
@@ -524,7 +527,7 @@
 	// 	{ k: 64, radius: 0, hasRun: false }
 	// ];
 
-    // let zoomLevels = [
+	// let zoomLevels = [
 	// 	{ k: 2.1, radius: 40, hasRun: false },
 	// 	{ k: 2.4, radius: 24, hasRun: false },
 	// 	{ k: 3.5, radius: 12, hasRun: false },
@@ -539,7 +542,7 @@
 	// 	{ k: 64, radius: 0, hasRun: false }
 	// ];
 
-    let zoomLevels = [
+	let zoomLevels = [
 		{ k: 2.1, radius: 40, hasRun: false },
 		{ k: 2.4, radius: 30, hasRun: false },
 		{ k: 3.5, radius: 24, hasRun: false },
@@ -553,7 +556,6 @@
 		{ k: 32, radius: 0.3, hasRun: false },
 		{ k: 64, radius: 0, hasRun: false }
 	];
-
 
 	let searchRadius;
 
@@ -612,8 +614,8 @@
 			if (pointIsInViewbox(mapTiler(projection(datum.point.properties.center)))) {
 				visibleTier1.push(datum);
 			} else {
-                datum.point.properties.visible = false;
-            }
+				datum.point.properties.visible = false;
+			}
 		});
 
 		quadtree.addAll(visibleTier1);
@@ -626,8 +628,8 @@
 				if (pointIsInViewbox(mapTiler(projection(datum.point.properties.center)))) {
 					visibleTier2.push(datum);
 				} else {
-                    datum.point.properties.visible = false;
-                }
+					datum.point.properties.visible = false;
+				}
 			});
 
 			quadtree.addAll(visibleTier2);
@@ -645,8 +647,8 @@
 				if (pointIsInViewbox(mapTiler(projection(datum.point.properties.center)))) {
 					visibleTier3.push(datum);
 				} else {
-                    datum.point.properties.visible = false;
-                }
+					datum.point.properties.visible = false;
+				}
 			});
 
 			quadtree.addAll(visibleTier3);
@@ -687,7 +689,7 @@
 
 	$: viewboxTopLeft = screenToVirtual({ x: 0, y: 0 }, transform);
 	$: viewboxBottomRight = screenToVirtual({ x: clientX, y: clientY }, transform);
-    
+
 	// function pointIsInViewbox(point) {
 	// 	// const boxTopLeftX = viewboxTopLeft[0] + 300 / transform.k;
 	// 	// const boxTopLeftY = viewboxTopLeft[1] + 100 / transform.k;
@@ -697,7 +699,7 @@
 	// 	// const boxTopLeftY = viewboxTopLeft[1] - 100 / transform.k;
 	// 	// const boxBottomRightX = viewboxBottomRight[0] + 100 / transform.k;
 	// 	// const boxBottomRightY = viewboxBottomRight[1] + 100 / transform.k;
-    //     const boxTopLeftX = viewboxTopLeft[0];
+	//     const boxTopLeftX = viewboxTopLeft[0];
 	// 	const boxTopLeftY = viewboxTopLeft[1];
 	// 	const boxBottomRightX = viewboxBottomRight[0];
 	// 	const boxBottomRightY = viewboxBottomRight[1];
@@ -709,72 +711,42 @@
 	// }
 
 	function pointIsInViewbox(point) {
-        callCount++
-		return  point[0] >= viewboxTopLeft[0] && point[0] <= viewboxBottomRight[0] && point[1] >= viewboxTopLeft[1] && point[1] <= viewboxBottomRight[1];
+		return (
+			point[0] >= viewboxTopLeft[0] &&
+			point[0] <= viewboxBottomRight[0] &&
+			point[1] >= viewboxTopLeft[1] &&
+			point[1] <= viewboxBottomRight[1]
+		);
 	}
 
-    // function mapTiler(point) {
-    //     if (point[0] < viewboxTopLeft[0] && viewboxBottomRight[0] > mapRealRightEdge) {
-    //         return [point[0] + mapRealWidth, point[1]]
-    //     } else if (point[0] > viewboxBottomRight[0] && viewboxTopLeft[0] < mapRealLeftEdge) {
-    //         return [point[0] - mapRealWidth, point[1]]
-    //     }
+	function bboxIntersectsViewbox(bbox) {
+		let bboxTopLeft = projection([bbox[0], bbox[3]]);
+		let bboxBottomRight = projection([bbox[2], bbox[1]]);
 
-    //     return point
-    // }
-    function bboxIntersectsViewbox(bbox) {
-        let bboxTopLeft = projection([bbox[0], bbox[3]])
-        let bboxBottomRight = projection([bbox[2], bbox[1]])
-
-        // if (viewboxBottomRight[0] > mapRealLeftEdge && bboxTopLeft[0] > viewboxBottomRight[0]) {
-        //     bboxTopLeft = [bboxTopLeft[0] + mapRealWidth, bboxTopLeft[1]]
-        //     bboxBottomRight = [bboxBottomRight[0] + mapRealWidth, bboxBottomRight[1]]
-        // }
-        //  else if (viewboxTopLeft[0] < mapRealLeftEdge && bboxTopLeft[0] > viewboxTopLeft[0]) {
-        //     bboxTopLeft = [bboxTopLeft[0] - mapRealWidth, bboxTopLeft[1]]
-        //     bboxBottomRight = [bboxBottomRight[0] - mapRealWidth, bboxBottomRight[1]]
-        // }
-        // // let r1 = {
-        //     left: bboxTopLeft[0],
-        //     right: bboxBottomRight[0],
-        //     top: bboxTopLeft[1],
-        //     bottom: bboxBottomRight[1]
-        // }
-
-        // let r2 = {
-        //     left: viewboxTopLeft[0],
-        //     right: viewboxBottomRight[0],
-        //     top: viewboxTopLeft[1],
-        //     bottom: viewboxBottomRight[1]
-        // }
-        console.log('bbox')
-        return !(viewboxTopLeft[0] > bboxBottomRight[0] || viewboxBottomRight[0] < bboxTopLeft[0] || viewboxTopLeft[1] > bboxBottomRight[1] || viewboxBottomRight[1] < bboxTopLeft[1]);
-    }
+		return !(
+			viewboxTopLeft[0] > bboxBottomRight[0] ||
+			viewboxBottomRight[0] < bboxTopLeft[0] ||
+			viewboxTopLeft[1] > bboxBottomRight[1] ||
+			viewboxBottomRight[1] < bboxTopLeft[1]
+		);
+	}
 
 	let prevViewboxCoords = [0, 0];
-    let prevK = 0;
-
 	function updateDisplayedPoints() {
 		const currentViewboxCoords = [0 - transform.x / transform.k, 0 - transform.y / transform.k];
 
 		const distanceX = Math.abs(currentViewboxCoords[0] - prevViewboxCoords[0]);
 		const distanceY = Math.abs(currentViewboxCoords[1] - prevViewboxCoords[1]);
-        const distanceK = Math.abs(transform.k - prevK)
 
 		if (distanceX > 100 / transform.k || distanceY > 100 / transform.k) {
-			console.log('View box moved by more than 100 units.');
+			// console.log('View box moved by more than 100 units.');
 			updateVisibilities();
-			// countryNamesDataset = countryNamesDataset;
-			// stateNamesDataset = stateNamesDataset;
-			// cityNamesDataset = cityNamesDataset;
 			prevViewboxCoords = currentViewboxCoords;
 			boundaryLinesStates = boundaryLinesStates;
-            boundaryLines = boundaryLines;
-            // dataset = dataset;
+			boundaryLines = boundaryLines;
 		} else {
-            updateAirportVisibilities(transform.k);
-            // prevK = transform.k;
-        }
+			updateAirportVisibilities(transform.k);
+		}
 	}
 
 	$: transform, updateDisplayedPoints();
@@ -791,30 +763,99 @@
 	// $: mousePos, testVis();
 
 	// $: if (mousePos) { console.log(transform.apply([mousePos.x, mousePos.y])); }
-    // $: boxTopLeftX = viewboxTopLeft[0] - 100 / transform.k;
-    // $: boxBottomRightX = viewboxBottomRight[0] + 100 / transform.k;
-    $: boxTopLeftX = viewboxTopLeft[0];
-    $: boxBottomRightX = viewboxBottomRight[0];
+	// $: boxTopLeftX = viewboxTopLeft[0] - 100 / transform.k;
+	// $: boxBottomRightX = viewboxBottomRight[0] + 100 / transform.k;
+	$: boxTopLeftX = viewboxTopLeft[0];
+	$: boxBottomRightX = viewboxBottomRight[0];
 
-    let callCount = 0;
-    
-    function mapTiler(point) {
-        if (point[0] < viewboxTopLeft[0] && viewboxBottomRight[0] > mapRealRightEdge) {
-            return [point[0] + mapRealWidth, point[1]]
-        } else if (point[0] > viewboxBottomRight[0] && viewboxTopLeft[0] < mapRealLeftEdge) {
-            return [point[0] - mapRealWidth, point[1]]
-        }
+	function mapTiler(point) {
+		if (point[0] < viewboxTopLeft[0] && viewboxBottomRight[0] > mapRealRightEdge) {
+			return [point[0] + mapRealWidth, point[1]];
+		} else if (point[0] > viewboxBottomRight[0] && viewboxTopLeft[0] < mapRealLeftEdge) {
+			return [point[0] - mapRealWidth, point[1]];
+		}
 
-        return point
-    }
+		return point;
+	}
 
-    $: console.log('called: ', callCount)
+	const unprojectedWidth = projection.invert(mapRealWidth, 0);
 
-    const unprojectedWidth = projection.invert(mapRealWidth, 0)
+	function shiftBBoxMapWidth(bbox, x) {
+		return [bbox[0] + unprojectedWidth[0] * x, bbox[1], bbox[2] + unprojectedWidth[0] * x, bbox[3]];
+	}
 
-    function shiftBBoxMapWidth(bbox, x) {
-        return [bbox[0]+unprojectedWidth[0]*x, bbox[1], bbox[2]+unprojectedWidth[0]*x, bbox[3]]
-    }
+	const vigo = [-8.729995, 42.220019];
+	const wilmington = [-77.94502, 34.225519];
+	const newyork = [-73.995718, 40.721562];
+
+	function interpolate(a, b, frac) {
+		frac = Math.max(Math.min(frac, 1), 0);
+		var nx = a[0] + (b[0] - a[0]) * frac;
+		var ny = a[1] + (b[1] - a[1]) * frac;
+		return [nx, ny];
+	}
+
+	let lastTickTime = performance.now();
+	let lastAvgTickTime = performance.now();
+	let avgTickLength = 0;
+	let tickTime = 0;
+	let tickDelta = 0;
+	let currentTick = 0;
+	const interval = setInterval(() => {
+		currentTick++;
+
+		tickTime = performance.now() - lastTickTime;
+		lastTickTime = performance.now();
+
+		if (currentTick % 20 === 0) {
+			avgTickLength = Math.round((performance.now() - lastAvgTickTime) / 20);
+			lastAvgTickTime = performance.now();
+		}
+	}, 50);
+
+	let shipLocation = [10, 10];
+	let shipLocation2 = [10, 10];
+	let shipLocation3 = [10, 10];
+	let fps = 0;
+	let frameCount = 0;
+	let lastFpsTime = 0;
+	let previousTime = 0;
+	let deltaTime = 0;
+
+	// let movementSpeed = 1;
+	let distanceMoved = 0;
+
+	function moveDistance(speed) {
+		return speed * delta;
+	}
+
+	function loop() {
+		frameCount++;
+
+		deltaTime = (performance.now() - previousTime) / 1000;
+		previousTime = performance.now();
+
+		let elapsed = performance.now() - lastFpsTime;
+
+		if (elapsed >= 1000) {
+			fps = Math.round(frameCount / (elapsed / 1000));
+			lastFpsTime = performance.now();
+			frameCount = 0;
+		}
+
+		distanceMoved = distanceMoved + moveDistance(0.1);
+		// console.log('move dist: ', moveDistance(10000))
+		shipLocation = interpolate(vigo, wilmington, distanceMoved % 1.1);
+		shipLocation2 = interpolate(wilmington, vigo, distanceMoved % 1.1);
+		shipLocation3 = interpolate(newyork, vigo, distanceMoved % 1.1);
+		requestAnimationFrame(loop);
+	}
+
+	// $: shipLocation = interpolate(vigo, wilmington, currentTick/20 % 1.1)
+	// $: shipLocation2 = interpolate(wilmington, vigo, currentTick/20 % 1.1)
+	// $: shipLocation3 = interpolate(newyork, vigo, currentTick/20 % 1.1)
+
+	$: ships = [shipLocation, shipLocation2, shipLocation3];
 </script>
 
 <svelte:window
@@ -823,7 +864,7 @@
 	bind:innerHeight={clientY}
 />
 
-<div class="overlay">
+<!-- <div class="overlay">
 	<div style="width: 240px;">
 		Zoom: {transform.k}
 	</div>
@@ -832,109 +873,134 @@
 			|{i}| k:{level.k} r:{level.radius}
 		</div>
 	{/each}
-</div>
-<div class="overlay" style="width: 100%; left: auto; bottom: 1rem; top: auto; height: 10px; padding: 0; background: black;">
-    <div style="background: #343434; min-width: {mapRealWidth}px; min-height: 10px; position: absolute; left: {mapRealLeftEdge}px;"></div>
-    <div style="background: lime; min-width: 1px; min-height: 10px; position: absolute; left: {mapRealLeftEdge}px;"></div>
-    <div style="background: lime; min-width: 1px; min-height: 10px; position: absolute; left: {mapRealRightEdge}px;"></div>
-    {#key airports}
-        <div style="background: {pointIsInViewbox(mapTiler([mapRealLeftEdge+25, 200])) ? 'lime' : 'red'}; min-width: 2px; min-height: 10px; position: absolute; left: {mapTiler([mapRealLeftEdge+25, 0])[0]}px;"></div>
-        <div style="background: {pointIsInViewbox(mapTiler([mapRealRightEdge-25, 200])) ? 'lime' : 'red'}; min-width: 2px; min-height: 10px; position: absolute; left: {mapTiler([mapRealRightEdge-25, 0])[0]}px;"></div>
-    {/key}
+</div> -->
+<div style="height: 10px; background-color: black; width: 100%;">
+	<div
+		style="background: #343434; min-width: {mapRealWidth}px; min-height: 10px; position: absolute; left: {mapRealLeftEdge}px;"
+	/>
+	<div
+		style="background: lime; min-width: 1px; min-height: 10px; position: absolute; left: {mapRealLeftEdge}px;"
+	/>
+	<div
+		style="background: lime; min-width: 1px; min-height: 10px; position: absolute; left: {mapRealRightEdge}px;"
+	/>
+	{#key airports}
+		<div
+			style="background: {pointIsInViewbox(mapTiler([mapRealLeftEdge + 25, 200]))
+				? 'lime'
+				: 'red'}; min-width: 2px; min-height: 10px; position: absolute; left: {mapTiler([
+				mapRealLeftEdge + 25,
+				0
+			])[0]}px;"
+		/>
+		<div
+			style="background: {pointIsInViewbox(mapTiler([mapRealRightEdge - 25, 200]))
+				? 'lime'
+				: 'red'}; min-width: 2px; min-height: 10px; position: absolute; left: {mapTiler([
+				mapRealRightEdge - 25,
+				0
+			])[0]}px;"
+		/>
+	{/key}
 
-	<div style="background: white; min-width: 1px; min-height: 10px; position: absolute; left: {boxBottomRightX}px;"></div>
-    <div style="background: white; min-width: 1px; min-height: 10px; position: absolute; left: {boxTopLeftX}px;"></div>
+	<div
+		style="background: white; min-width: 1px; min-height: 10px; position: absolute; left: {boxBottomRightX}px;"
+	/>
+	<div
+		style="background: white; min-width: 1px; min-height: 10px; position: absolute; left: {boxTopLeftX}px;"
+	/>
 </div>
-<div style="left: {mousePos?.x + 10}px; top: {mousePos?.y + 10}px" class="tooltip">
-	<div class="tooltip-country">
-		<img alt="United States" src="./src/lib/flags/real/{hovered?.properties.WB_A2}.svg" />{hovered
-			?.properties.NAME_EN ?? ''}
-	</div>
-	<div>
+<div>
+	{#each zoomLevels as level, i}
+		<span style="background: {level.hasRun ? 'cyan' : 'lightgray'}">
+			|{i}| k:{level.k} r:{level.radius}
+		</span>
+	{/each}
+</div>
+<div>
+	currentTick {currentTick} | avgTickLength {avgTickLength}ms | tickTime {Math.round(tickTime)}ms |
+	Zoom {transform.k.toFixed(1)} | frameCount {frameCount} | fps {fps}
+</div>
+<!-- <div class="overlay" style="width: 100%; left: auto; bottom: 1rem; top: auto; height: 10px; padding: 0; background: black;"> -->
+
+{#key hovered}
+	<div
+		style="left: {hovered?.properties.ship != null
+			? ships[hovered?.properties?.ship][0] - transform.x
+			: mousePos?.x + 10}px; top: {hovered?.properties.ship != null
+			? ships[hovered?.properties?.ship][1]
+			: mousePos?.y + 10}px"
+		class="tooltip"
+	>
+		<div class="tooltip-country">
+			<img alt="United States" src="./src/lib/flags/real/{hovered?.properties.WB_A2}.svg" />{hovered
+				?.properties.NAME_EN ?? ''}
+		</div>
+		<!-- <div>
 		Population: {hovered?.properties.POP_EST?.toLocaleString() ?? ''}
+	</div> -->
 	</div>
-</div>
-
+{/key}
 <svg bind:this={svg} width={clientX} height={clientY} viewBox="0 0 {clientX} {clientY}">
 	<g shape-rendering="auto" {transform} fill="white" stroke="black">
 		{#each dataset as data, i}
-            <!-- {#if bboxIntersectsViewbox(data.bbox)} -->
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
-			<!-- svelte-ignore a11y-no-static-element-interactions -->
-            <!-- <g transform="translate({mapTiler(projection(data.properties.center))[0] - projection(data.properties.center)[0]}, 0)"> -->
-                <path
-                    on:click={() => {
-                        selected = data;
+			<path
+				on:click={() => {
+					selected = data;
 
-                        countryNamesDataset = countryNamesDataset;
-                    }}
-                    on:mouseover={() => {
-                        hovered = data;
-                    }}
-                    d={path(data)}
-                    fill={computeColor(data.properties.POP_EST, data.properties.MAPCOLOR7)}
-                    stroke="none"
-                    class="country"
-                />
-            <!-- </g> -->
-            <!-- {/if} -->
+					countryNamesDataset = countryNamesDataset;
+				}}
+				on:mouseover={() => {
+					hovered = data;
+				}}
+				d={path(data)}
+				fill={computeColor(data.properties.POP_EST, data.properties.MAPCOLOR7)}
+				stroke="none"
+				class="country"
+			/>
 		{/each}
-        {#if viewboxTopLeft[0] < mapRealLeftEdge}
-            {console.log('loaded in new map')}
-            <g transform="translate({-mapRealWidth}, 0)">
-                {#each dataset as data, i}
-                    <!-- {#if bboxIntersectsViewbox(shiftBBoxMapWidth(data.bbox, -1))} -->
 
-                    <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <!-- <g transform="translate({mapTiler(projection(data.center.geometry.coordinates))[0] - projection(data.center.geometry.coordinates)[0]}, 0)"> -->
-                        <path
-                            on:click={() => {
-                                selected = data;
+		{#if viewboxTopLeft[0] < mapRealLeftEdge}
+			<g transform="translate({-mapRealWidth}, 0)">
+				{#each dataset as data, i}
+					<path
+						on:click={() => {
+							selected = data;
 
-                                countryNamesDataset = countryNamesDataset;
-                            }}
-                            on:mouseover={() => {
-                                hovered = data;
-                            }}
-                            d={path(data)}
-                            fill={computeColor(data.properties.POP_EST, data.properties.MAPCOLOR7)}
-                            stroke="none"
-                            class="country"
-                        />
-                    <!-- </g> -->
-                    <!-- {/if} -->
-                {/each}
-            </g>
-        {/if}
-        {#if viewboxBottomRight[0] > mapRealRightEdge}
-            {console.log('loaded in new map')}
-            <g transform="translate({mapRealWidth}, 0)">
-                {#each dataset as data, i}
-                    <!-- {#if bboxIntersectsViewbox(shiftBBoxMapWidth(data.bbox, 1))} -->
-                    <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <!-- <g transform="translate({mapTiler(projection(data.center.geometry.coordinates))[0] - projection(data.center.geometry.coordinates)[0]}, 0)"> -->
-                        <path
-                            on:click={() => {
-                                selected = data;
+							countryNamesDataset = countryNamesDataset;
+						}}
+						on:mouseover={() => {
+							hovered = data;
+						}}
+						d={path(data)}
+						fill={computeColor(data.properties.POP_EST, data.properties.MAPCOLOR7)}
+						stroke="none"
+						class="country"
+					/>
+				{/each}
+			</g>
+		{/if}
+		{#if viewboxBottomRight[0] > mapRealRightEdge}
+			<g transform="translate({mapRealWidth}, 0)">
+				{#each dataset as data, i}
+					<path
+						on:click={() => {
+							selected = data;
 
-                                countryNamesDataset = countryNamesDataset;
-                            }}
-                            on:mouseover={() => {
-                                hovered = data;
-                            }}
-                            d={path(data)}
-                            fill={computeColor(data.properties.POP_EST, data.properties.MAPCOLOR7)}
-                            stroke="none"
-                            class="country"
-                        />
-                    <!-- {/if} -->
-                    <!-- </g> -->
-                {/each}
-            </g>
-        {/if}
-        <!-- {#if transform.k > zoomLevels[7].k} 
+							countryNamesDataset = countryNamesDataset;
+						}}
+						on:mouseover={() => {
+							hovered = data;
+						}}
+						d={path(data)}
+						fill={computeColor(data.properties.POP_EST, data.properties.MAPCOLOR7)}
+						stroke="none"
+						class="country"
+					/>
+				{/each}
+			</g>
+		{/if}
+		<!-- {#if transform.k > zoomLevels[7].k} 
             {#each urbanAreas.features as data}
                 <path d={path(data)} fill="#FCFBF3" stroke="none" class="country" />
             {/each}
@@ -942,42 +1008,52 @@
 		{#if transform.k > zoomLevels[2].k}
 			{#each boundaryLinesStates as boundaryLine}
 				{#if pointIsInViewbox(mapTiler(projection(boundaryLine.center.geometry.coordinates)))}
-                    <g transform="translate({mapTiler(projection(boundaryLine.center.geometry.coordinates))[0] - projection(boundaryLine.center.geometry.coordinates)[0]}, 0)">
-                        <path
-                            d={path(boundaryLine)}
-                            fill="none"
-                            stroke="#D6ADC1"
-                            stroke-width={0.5 / transform.k}
-                            class="country"
-                        />
-                    </g>
+					<g
+						transform="translate({mapTiler(
+							projection(boundaryLine.center.geometry.coordinates)
+						)[0] - projection(boundaryLine.center.geometry.coordinates)[0]}, 0)"
+					>
+						<path
+							d={path(boundaryLine)}
+							fill="none"
+							stroke="#D6ADC1"
+							stroke-width={0.5 / transform.k}
+							class="country"
+						/>
+					</g>
 				{/if}
 			{/each}
 		{/if}
 		{#if transform.k > zoomLevels[1].k}
 			{#each boundaryLines as boundaryLine}
-                <g transform="translate({mapTiler(projection(boundaryLine.center.geometry.coordinates))[0] - projection(boundaryLine.center.geometry.coordinates)[0]}, 0)">
-                    <path
-                        d={path(boundaryLine)}
-                        fill="none"
-                        stroke="#D6ADC1"
-                        stroke-width={1 / transform.k}
-                        class="country"
-                    />
-                </g>
+				<g
+					transform="translate({mapTiler(projection(boundaryLine.center.geometry.coordinates))[0] -
+						projection(boundaryLine.center.geometry.coordinates)[0]}, 0)"
+				>
+					<path
+						d={path(boundaryLine)}
+						fill="none"
+						stroke="#D6ADC1"
+						stroke-width={1 / transform.k}
+						class="country"
+					/>
+				</g>
 			{/each}
 		{/if}
-		{#if selected}
-			<path
-				bind:this={activeCountry}
-				d={path(selected)}
-				fill="none"
-				stroke="white"
-				stroke-width={1 / transform.k}
-			/>
-			<!-- <path d={path(selected.properties.center)} stroke="white" /> -->
 
-			<!-- <text
+		<!-- {#if selected}
+            <g transform="translate({mapTiler(projection(selected.properties.center))[0] - projection(selected.properties.center)[0]}, 0)">
+                <path
+                    bind:this={activeCountry}
+                    d={path(selected)}
+                    fill="none"
+                    stroke="white"
+                    stroke-width={1 / transform.k}
+                />
+            </g>
+			<<path d={path(selected.properties.center)} stroke="white" /> -->
+
+		<!-- <text
                 bind:this={countryLabel}
                 x={projection(selected.properties.center.geometry.coordinates)[0]}
                 y={projection(selected.properties.center.geometry.coordinates)[1]}
@@ -985,17 +1061,76 @@
                 font-family="Arial"
                 class="country-label">{selected.properties.NAME_EN}</text
             > -->
-		{/if}
+		<!-- {/if} -->
+		{#key airports}
+			<svg
+				on:mouseover={() => {
+					hovered = {
+						properties: {
+							NAME_EN: 'F-16 (UNITED STATES)',
+							WB_A2: 'US',
+							ship: 0
+						}
+					};
+				}}
+				x={mapTiler(projection(shipLocation))[0] - Math.max(18 / transform.k, 0.2) / 2}
+				y={mapTiler(projection(shipLocation))[1] - Math.max(18 / transform.k, 0.2) / 2}
+				width={Math.max(18 / transform.k, 0.2)}
+				height={Math.max(18 / transform.k, 0.2)}
+				viewBox="0 0 30 30"
+				fill="none"
+				class="airplane"
+				xmlns="http://www.w3.org/2000/svg"
+			>
+				<path
+					d="M21.5897 19.0897L17.9979 15.4979C17.5105 15.0105 17.6508 14.1876 18.2723 13.8893L28.3662 9.0442C28.9462 8.76584 29.1162 8.02028 28.7144 7.51798L27.8775 6.47193C27.6454 6.18175 27.2715 6.04423 26.9067 6.11484L12.5014 8.90296C12.1865 8.96391 11.8614 8.87009 11.6274 8.65071L4.14575 1.63664C4.04953 1.54644 3.93642 1.47616 3.81293 1.42985L3.45511 1.29566C1.96837 0.738138 0.456035 2.05216 0.800485 3.60218L0.940607 4.23273C0.979487 4.40769 1.06467 4.56899 1.18726 4.69974L8.14803 12.1246C8.36891 12.3602 8.46241 12.6879 8.39908 13.0046L5.60496 26.9752C5.53939 27.3031 5.64201 27.642 5.87843 27.8784L7.01894 29.0189C7.50158 29.5016 8.31523 29.3695 8.62048 28.759L13.4127 19.1746C13.7081 18.5837 14.4851 18.4366 14.9761 18.8785L18.5421 22.0879C18.8229 22.3406 18.9373 22.7299 18.8379 23.0943L17.6527 27.4401C17.5583 27.7863 17.6566 28.1566 17.9103 28.4103L18.6048 29.1048C19.0615 29.5615 19.825 29.4719 20.1635 28.9218L23.3506 23.7428C23.4482 23.5841 23.5883 23.4558 23.755 23.3725L28.3936 21.0532C28.963 20.7685 29.125 20.0312 28.7273 19.5341L27.9103 18.5129C27.6612 18.2015 27.251 18.0679 26.8663 18.1728L22.5599 19.3473C22.2137 19.4417 21.8434 19.3434 21.5897 19.0897Z"
+					fill="blue"
+					stroke="white"
+				/>
+			</svg>
+			<svg
+				x={mapTiler(projection(shipLocation2))[0] - Math.max(18 / transform.k, 0.2) / 2}
+				y={mapTiler(projection(shipLocation2))[1] - Math.max(18 / transform.k, 0.2) / 2}
+				width={Math.max(18 / transform.k, 0.2)}
+				height={Math.max(18 / transform.k, 0.2)}
+				viewBox="0 0 30 30"
+				fill="none"
+				class="airplane"
+				xmlns="http://www.w3.org/2000/svg"
+			>
+				<path
+					d="M21.5897 19.0897L17.9979 15.4979C17.5105 15.0105 17.6508 14.1876 18.2723 13.8893L28.3662 9.0442C28.9462 8.76584 29.1162 8.02028 28.7144 7.51798L27.8775 6.47193C27.6454 6.18175 27.2715 6.04423 26.9067 6.11484L12.5014 8.90296C12.1865 8.96391 11.8614 8.87009 11.6274 8.65071L4.14575 1.63664C4.04953 1.54644 3.93642 1.47616 3.81293 1.42985L3.45511 1.29566C1.96837 0.738138 0.456035 2.05216 0.800485 3.60218L0.940607 4.23273C0.979487 4.40769 1.06467 4.56899 1.18726 4.69974L8.14803 12.1246C8.36891 12.3602 8.46241 12.6879 8.39908 13.0046L5.60496 26.9752C5.53939 27.3031 5.64201 27.642 5.87843 27.8784L7.01894 29.0189C7.50158 29.5016 8.31523 29.3695 8.62048 28.759L13.4127 19.1746C13.7081 18.5837 14.4851 18.4366 14.9761 18.8785L18.5421 22.0879C18.8229 22.3406 18.9373 22.7299 18.8379 23.0943L17.6527 27.4401C17.5583 27.7863 17.6566 28.1566 17.9103 28.4103L18.6048 29.1048C19.0615 29.5615 19.825 29.4719 20.1635 28.9218L23.3506 23.7428C23.4482 23.5841 23.5883 23.4558 23.755 23.3725L28.3936 21.0532C28.963 20.7685 29.125 20.0312 28.7273 19.5341L27.9103 18.5129C27.6612 18.2015 27.251 18.0679 26.8663 18.1728L22.5599 19.3473C22.2137 19.4417 21.8434 19.3434 21.5897 19.0897Z"
+					fill="blue"
+					stroke="white"
+				/>
+			</svg>
+			<svg
+				x={mapTiler(projection(shipLocation3))[0] - Math.max(18 / transform.k, 0.2) / 2}
+				y={mapTiler(projection(shipLocation3))[1] - Math.max(18 / transform.k, 0.2) / 2}
+				width={Math.max(18 / transform.k, 0.2)}
+				height={Math.max(18 / transform.k, 0.2)}
+				viewBox="0 0 30 30"
+				fill="none"
+				class="airplane"
+				xmlns="http://www.w3.org/2000/svg"
+			>
+				<path
+					d="M21.5897 19.0897L17.9979 15.4979C17.5105 15.0105 17.6508 14.1876 18.2723 13.8893L28.3662 9.0442C28.9462 8.76584 29.1162 8.02028 28.7144 7.51798L27.8775 6.47193C27.6454 6.18175 27.2715 6.04423 26.9067 6.11484L12.5014 8.90296C12.1865 8.96391 11.8614 8.87009 11.6274 8.65071L4.14575 1.63664C4.04953 1.54644 3.93642 1.47616 3.81293 1.42985L3.45511 1.29566C1.96837 0.738138 0.456035 2.05216 0.800485 3.60218L0.940607 4.23273C0.979487 4.40769 1.06467 4.56899 1.18726 4.69974L8.14803 12.1246C8.36891 12.3602 8.46241 12.6879 8.39908 13.0046L5.60496 26.9752C5.53939 27.3031 5.64201 27.642 5.87843 27.8784L7.01894 29.0189C7.50158 29.5016 8.31523 29.3695 8.62048 28.759L13.4127 19.1746C13.7081 18.5837 14.4851 18.4366 14.9761 18.8785L18.5421 22.0879C18.8229 22.3406 18.9373 22.7299 18.8379 23.0943L17.6527 27.4401C17.5583 27.7863 17.6566 28.1566 17.9103 28.4103L18.6048 29.1048C19.0615 29.5615 19.825 29.4719 20.1635 28.9218L23.3506 23.7428C23.4482 23.5841 23.5883 23.4558 23.755 23.3725L28.3936 21.0532C28.963 20.7685 29.125 20.0312 28.7273 19.5341L27.9103 18.5129C27.6612 18.2015 27.251 18.0679 26.8663 18.1728L22.5599 19.3473C22.2137 19.4417 21.8434 19.3434 21.5897 19.0897Z"
+					fill="blue"
+					stroke="white"
+				/>
+			</svg>
+		{/key}
 		{#if true}
 			{#each airports.features as airport}
 				{#if airport.properties.visible}
 					{#if pointIsInViewbox(projection(airport.properties.center))}
-						{#if transform.k > 70}
+						{#if transform.k > 256}
 							<svg
-								x={projection(airport.properties.center)[0] - 1 / 2}
-								y={projection(airport.properties.center)[1] - 1 / 2}
-								width="1px"
-								height="1px"
+								x={projection(airport.properties.center)[0] - 0.125}
+								y={projection(airport.properties.center)[1] - 0.125}
+								width="0.25px"
+								height="0.25px"
 								viewBox="0 0 13 13"
 								fill="none"
 								xmlns="http://www.w3.org/2000/svg"
@@ -1085,10 +1220,10 @@
 							</svg>
 						{:else}
 							<svg
-								x={projection(airport.properties.center)[0] - Math.max(18 / transform.k, 1) / 2}
-								y={projection(airport.properties.center)[1] - Math.max(18 / transform.k, 1) / 2}
-								width={Math.max(18 / transform.k, 1)}
-								height={Math.max(18 / transform.k, 1)}
+								x={projection(airport.properties.center)[0] - Math.max(18 / transform.k, 0.2) / 2}
+								y={projection(airport.properties.center)[1] - Math.max(18 / transform.k, 0.2) / 2}
+								width={Math.max(18 / transform.k, 0.2)}
+								height={Math.max(18 / transform.k, 0.2)}
 								viewBox="0 0 30 30"
 								fill="none"
 								style="pointer-events: none;"
@@ -1108,55 +1243,55 @@
 		{#each cityNamesDataset as data (data.properties.ne_id)}
 			{#if data.properties.visible}
 				<!-- {#if pointIsInViewbox(mapTiler(projection(data.properties.center)))} -->
-					<!-- <path d={path(data)} fill="none" stroke="black" stroke-width="0.1" /> -->
+				<!-- <path d={path(data)} fill="none" stroke="black" stroke-width="0.1" /> -->
 
-					<text
-						x={mapTiler(projection(data.properties.center))[0]}
-						y={mapTiler(projection(data.properties.center))[1] - 12 / transform.k}
-						font-size={(10 + 5 * (data.properties.pop_min / 14608512)) / transform.k}
-						stroke-width={(1.32 + 0.66 * (data.properties.pop_min / 14608512)) / transform.k}
-						class="city-name">{data.properties.name}</text
-					>
-					<circle
-						cx={mapTiler(projection(data.properties.center))[0]}
-						cy={mapTiler(projection(data.properties.center))[1]}
-						r={(1.5 + 1.5 * (data.properties.pop_min / 14608512)) / transform.k}
-						fill="white"
-						stroke="black"
-						stroke-width={(0.75 + 0.75 * (data.properties.pop_min / 14608512)) / transform.k}
-					/>
+				<text
+					x={mapTiler(projection(data.properties.center))[0]}
+					y={mapTiler(projection(data.properties.center))[1] - 12 / transform.k}
+					font-size={(10 + 5 * (data.properties.pop_min / 14608512)) / transform.k}
+					stroke-width={(1.32 + 0.66 * (data.properties.pop_min / 14608512)) / transform.k}
+					class="city-name">{data.properties.name}</text
+				>
+				<circle
+					cx={mapTiler(projection(data.properties.center))[0]}
+					cy={mapTiler(projection(data.properties.center))[1]}
+					r={(1.5 + 1.5 * (data.properties.pop_min / 14608512)) / transform.k}
+					fill="white"
+					stroke="black"
+					stroke-width={(0.75 + 0.75 * (data.properties.pop_min / 14608512)) / transform.k}
+				/>
 				<!-- {/if} -->
 			{/if}
 		{/each}
 		{#each stateNamesDataset as data}
 			{#if data.properties.visible}
 				<!-- {#if pointIsInViewbox(projection(data.properties.center))} -->
-					<text
-						x={projection(data.properties.center)[0]}
-						y={projection(data.properties.center)[1]}
-						font-size={7 / transform.k}
-						stroke-width={2 / transform.k}
-						fill="#814b6c"
-						stroke="#eef6e8"
-						class="country-name">{data.properties.postal}</text
-					>
+				<text
+					x={projection(data.properties.center)[0]}
+					y={projection(data.properties.center)[1]}
+					font-size={7 / transform.k}
+					stroke-width={2 / transform.k}
+					fill="#814b6c"
+					stroke="#eef6e8"
+					class="country-name">{data.properties.postal}</text
+				>
 				<!-- {/if} -->
 			{/if}
 		{/each}
 		{#each countryNamesDataset as data (data.properties.NE_ID)}
 			{#if data.properties.visible || data.properties.NAME_EN === selected?.properties.NAME_EN}
 				<!-- {#if pointIsInViewbox(mapTiler(projection(data.properties.center)))} -->
-					<!-- font-size={15 / transform.k} -->
+				<!-- font-size={15 / transform.k} -->
 
-					<text
-						x={mapTiler(projection(data.properties.center))[0]}
-						y={mapTiler(projection(data.properties.center))[1]}
-						font-size={12 / transform.k}
-						stroke-width={2 / transform.k}
-						fill={data.properties.NAME_EN === selected?.properties.NAME_EN ? '#0085FF' : '#814b6c'}
-						stroke={data.properties.NAME_EN === selected?.properties.NAME_EN ? 'white' : '#eef6e8'}
-						class="country-name">{data.properties.NAME_EN}</text
-					>
+				<text
+					x={mapTiler(projection(data.properties.center))[0]}
+					y={mapTiler(projection(data.properties.center))[1]}
+					font-size={12 / transform.k}
+					stroke-width={2 / transform.k}
+					fill={data.properties.NAME_EN === selected?.properties.NAME_EN ? '#0085FF' : '#814b6c'}
+					stroke={data.properties.NAME_EN === selected?.properties.NAME_EN ? 'white' : '#eef6e8'}
+					class="country-name">{data.properties.NAME_EN}</text
+				>
 				<!-- {/if} -->
 			{/if}
 		{/each}
