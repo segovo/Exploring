@@ -22,12 +22,12 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@turf/boolean-point-in-polygon": "^6.5.0",
 		"@turf/turf": "^6.5.0",
 		"country-flag-icons": "^1.5.7",
 		"d3": "^7.8.5",
 		"d3-geo-projection": "^4.0.0",
 		"lodash": "^4.17.21",
-		"svelte-inview": "^4.0.0",
 		"topojson-client": "^3.1.0"
 	}
 }

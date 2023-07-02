@@ -24,6 +24,9 @@
 	import * as countryCenters from '$lib/data/countrycenters.json';
 	import * as importAirports from '$lib/data/airports/ne_10m_airports.json';
 	import airportIcon from '$lib/icons/airport.svg';
+    import Nation from '$lib/components/Nation.svelte'
+    import BR from '$lib/components/flags/BR.svelte'
+    import US from '$lib/components/flags/US.svelte'
 
 	let airports = importAirports;
 	const geojson = neworldMap;
@@ -73,6 +76,7 @@
 	geojson.features.forEach((geojson) => {
 		geojson.bbox = turf.bbox(geojson);
 	});
+    
 
 	let boundaryLines = [];
 	neboundaryLines.features.forEach((geojson, i) => {
@@ -193,6 +197,58 @@
 		d3.zoomIdentity.x = -720;
 		d3.zoomIdentity.y = -170;
 		transform = d3.zoomIdentity;
+
+
+        const interval = setInterval(() => {
+            currentTick++;
+            
+            nations.forEach(nation => {if (nation.component != null) nation.component?.tick(currentTick)})
+
+            // let jetQuadtree = d3
+            // 	.quadtree()
+            // 	.x((d) => d.x)
+            // 	.y((d) => d.y);
+
+            // let friendlies = jetData.filter(jet => jet.point.properties.team === 2)
+            // let enemies = jetData.filter(jet => jet.point.properties.team === 1)
+
+            // jetQuadtree.addAll(enemies)
+
+            // friendlies.forEach(friendly => jetSearchForEnemies(friendly, jetQuadtree))
+
+            // if (Math.floor(Math.random()*200) === 0) {
+            //     playerCities.forEach((city) => {
+            //         city.properties.population += city.properties.growthRate
+            //     })
+            //     console.log("playerCities: ", playerCities)
+            //     playerCities = playerCities
+            // }
+
+            // playerCities.forEach(city => city.tick(currentTick))
+            // playerCities = playerCities
+
+            // if (currentTick % 600 === 0) {
+            //     // Every 600 ticks or 30 seconds
+            //     playerCities.forEach((city) => {
+            //         city.properties.population += 1
+            //         // playerGold += Math.floor(city.properties.population)
+            //     }) 
+                
+            //     playerCities = playerCities
+            // }
+
+
+            tickTime = performance.now() - lastTickTime;
+            lastTickTime = performance.now();
+
+            // tickSamples.push({ tickTime: tickTime, time: performance.now(), zoom: transform.k })
+
+            if (currentTick % 20 === 0) {
+                avgTickLength = Math.round((performance.now() - lastAvgTickTime) / 20);
+                lastAvgTickTime = performance.now();
+            }
+        }, 50);
+
 		requestAnimationFrame(loop);
 	});
 
@@ -471,7 +527,6 @@
 		countryNamesDataset = countryNamesDataset;
 		stateNamesDataset = stateNamesDataset;
 		cityNamesDataset = cityNamesDataset;
-        playerCities = playerCities
 	}
 
 	function screenToVirtual(point, transform) {
@@ -609,53 +664,6 @@
 	let tickDelta = 0;
 	let currentTick = 0;
 
-	const interval = setInterval(() => {
-		currentTick++;
-        
-        let jetQuadtree = d3
-			.quadtree()
-			.x((d) => d.x)
-			.y((d) => d.y);
-
-        let friendlies = jetData.filter(jet => jet.point.properties.team === 2)
-        let enemies = jetData.filter(jet => jet.point.properties.team === 1)
-
-        jetQuadtree.addAll(enemies)
-
-        friendlies.forEach(friendly => jetSearchForEnemies(friendly, jetQuadtree))
-
-        // if (Math.floor(Math.random()*200) === 0) {
-        //     playerCities.forEach((city) => {
-        //         city.properties.population += city.properties.growthRate
-        //     })
-        //     console.log("playerCities: ", playerCities)
-        //     playerCities = playerCities
-        // }
-
-        playerCities.forEach(city => city.tick(currentTick))
-        playerCities = playerCities
-
-        // if (currentTick % 600 === 0) {
-        //     // Every 600 ticks or 30 seconds
-        //     playerCities.forEach((city) => {
-        //         city.properties.population += 1
-        //         // playerGold += Math.floor(city.properties.population)
-        //     }) 
-            
-        //     playerCities = playerCities
-		// }
-
-
-		tickTime = performance.now() - lastTickTime;
-		lastTickTime = performance.now();
-
-        // tickSamples.push({ tickTime: tickTime, time: performance.now(), zoom: transform.k })
-
-		if (currentTick % 20 === 0) {
-			avgTickLength = Math.round((performance.now() - lastAvgTickTime) / 20);
-			lastAvgTickTime = performance.now();
-		}
-	}, 50);
 
 	let shipLocation = [10, 10];
 	let shipLocation2 = [10, 10];
@@ -675,18 +683,18 @@
     // let fpsSamples = [] 
     // let tickSamples = []
 
-    function jetSearchForEnemies(jet, jetQuadtree) {
-        const neighbor = jetQuadtree.find(jet.x, jet.y, 10);
-        if (neighbor) {
-            if (movingObjects.indexOf(jet.point) === -1) {
-                jet.point.properties.startLocation = jet.point.properties.location
-                jet.point.properties.target = neighbor.point.properties.location
-                jet.point.properties.pointDistance = Math.sqrt(Math.pow(jet.point.properties.target[0] - jet.point.properties.location[0], 2) + Math.pow(jet.point.properties.target[1] - jet.point.properties.location[1], 2))
-                jet.point.properties.targetDistance = 0;
-                movingObjects.push(jet.point)
-            }
-        }
-    }
+    // function jetSearchForEnemies(jet, jetQuadtree) {
+    //     const neighbor = jetQuadtree.find(jet.x, jet.y, 10);
+    //     if (neighbor) {
+    //         if (movingObjects.indexOf(jet.point) === -1) {
+    //             jet.point.properties.startLocation = jet.point.properties.location
+    //             jet.point.properties.target = neighbor.point.properties.location
+    //             jet.point.properties.pointDistance = Math.sqrt(Math.pow(jet.point.properties.target[0] - jet.point.properties.location[0], 2) + Math.pow(jet.point.properties.target[1] - jet.point.properties.location[1], 2))
+    //             jet.point.properties.targetDistance = 0;
+    //             movingObjects.push(jet.point)
+    //         }
+    //     }
+    // }
  
 	function loop() {
 		frameCount++;
@@ -710,12 +718,31 @@
 		shipLocation2 = interpolate(wilmington, vigo, distanceMoved % 1.1);
 		shipLocation3 = interpolate(newyork, vigo, distanceMoved % 1.1);
 
-        movingObjects.forEach(object => {
-            object.move()
-        })  
+        // movingObjects.forEach(object => {
+        //     object.move()
+        // })  
+
+
+
+        movingJets.forEach(jet => {
+            moveJet(jet)
+        })
 
 		requestAnimationFrame(loop);
 	}
+
+    function moveJet(jet) {
+        jet.targetDistance = jet.targetDistance + 0.01/jet.pointDistance
+        jet.location = interpolate(jet.startLocation, jet.target, jet.targetDistance)
+        if (Math.sqrt(Math.pow(jet.target[0] - jet.location[0], 2) + Math.pow(jet.target[1] - jet.location[1], 2)) < 0.1) {
+            movingJets.splice(movingJets.indexOf(jet), 1)
+            jet.startLocation = []
+            jet.target = []
+            jet.targetDistance = 0
+        }
+        nations = nations    
+    }
+
 
 	// $: shipLocation = interpolate(vigo, wilmington, currentTick/20 % 1.1)
 	// $: shipLocation2 = interpolate(wilmington, vigo, currentTick/20 % 1.1)
@@ -736,93 +763,90 @@
     let cityCost = 5;
     let playerCities = []
     let jetCost = 10;
-    let playerJets = []
+    // let playerJets = []
     let tikibarCost = 10;
     let playerTikiBars = []
     let id = 0;
     let jetSelected
     const citiesUsed = []
 
-    let enemyJets = [
-    { 
-        properties: {
-            team: 2,
-            nation: 'BR',
-            location: [-63.49332721318746, 9.16254689921207],
-            startLocation: [],
-            target: [],
-            targetDistance: 0,
-            pointDistance: 0
-        },
-        move() {
-            this.properties.targetDistance = this.properties.targetDistance + 0.01/this.properties.pointDistance
-            this.properties.location = interpolate(this.properties.startLocation, this.properties.target, this.properties.targetDistance)
-            if (Math.sqrt(Math.pow(this.properties.target[0] - this.properties.location[0], 2) + Math.pow(this.properties.target[1] - this.properties.location[1], 2)) < 0.1) {
-                movingObjects.splice(movingObjects.indexOf(this), 1)
-                this.properties.startLocation = []
-                this.properties.target = []
-                this.properties.targetDistance = 0
-            }
-            enemyJets = enemyJets
-        }
-    },
-    {
-        properties: {
-            team: 2,
-            nation: 'BR',
-            location: [-78.08945788447889, 2.0829045368274346],
-            startLocation: [],
-            target: [],
-            targetDistance: 0,
-            pointDistance: 0
-        },
-        move() {
-            this.properties.targetDistance = this.properties.targetDistance + 0.01/this.properties.pointDistance
-            this.properties.location = interpolate(this.properties.startLocation, this.properties.target, this.properties.targetDistance)
-            if (Math.sqrt(Math.pow(this.properties.target[0] - this.properties.location[0], 2) + Math.pow(this.properties.target[1] - this.properties.location[1], 2)) < 0.1) {
-                movingObjects.splice(movingObjects.indexOf(this), 1)
-                this.properties.startLocation = []
-                this.properties.target = []
-                this.properties.targetDistance = 0
-            }
-            enemyJets = enemyJets
-        }
-    }
-    ]
+    // let enemyJets = [
+    // { 
+    //     properties: {
+    //         team: 2,
+    //         nation: 'BR',
+    //         location: [-63.49332721318746, 9.16254689921207],
+    //         startLocation: [],
+    //         target: [],
+    //         targetDistance: 0,
+    //         pointDistance: 0
+    //     },
+    //     move() {
+    //         this.properties.targetDistance = this.properties.targetDistance + 0.01/this.properties.pointDistance
+    //         this.properties.location = interpolate(this.properties.startLocation, this.properties.target, this.properties.targetDistance)
+    //         if (Math.sqrt(Math.pow(this.properties.target[0] - this.properties.location[0], 2) + Math.pow(this.properties.target[1] - this.properties.location[1], 2)) < 0.1) {
+    //             movingObjects.splice(movingObjects.indexOf(this), 1)
+    //             this.properties.startLocation = []
+    //             this.properties.target = []
+    //             this.properties.targetDistance = 0
+    //         }
+    //         enemyJets = enemyJets
+    //     }
+    // },
+    // {
+    //     properties: {
+    //         team: 2,
+    //         nation: 'BR',
+    //         location: [-78.08945788447889, 2.0829045368274346],
+    //         startLocation: [],
+    //         target: [],
+    //         targetDistance: 0,
+    //         pointDistance: 0
+    //     },
+    //     move() {
+    //         this.properties.targetDistance = this.properties.targetDistance + 0.01/this.properties.pointDistance
+    //         this.properties.location = interpolate(this.properties.startLocation, this.properties.target, this.properties.targetDistance)
+    //         if (Math.sqrt(Math.pow(this.properties.target[0] - this.properties.location[0], 2) + Math.pow(this.properties.target[1] - this.properties.location[1], 2)) < 0.1) {
+    //             movingObjects.splice(movingObjects.indexOf(this), 1)
+    //             this.properties.startLocation = []
+    //             this.properties.target = []
+    //             this.properties.targetDistance = 0
+    //         }
+    //         enemyJets = enemyJets
+    //     }
+    // }
+    // ]
 
-    let jetData = []
-	enemyJets.forEach((jet) => {
-		let pointData = {};
-		pointData.x = projection(jet.properties.location)[0];
-		pointData.y = projection(jet.properties.location)[1];
-		pointData.point = jet;
+    // let jetData = []
+	// enemyJets.forEach((jet) => {
+	// 	let pointData = {};
+	// 	pointData.x = projection(jet.properties.location)[0];
+	// 	pointData.y = projection(jet.properties.location)[1];
+	// 	pointData.point = jet;
 
-		jetData.push(pointData);
-	});
+	// 	jetData.push(pointData);
+	// });
 
 
-    const movingObjects = []
-
-    $: console.log('playerJets: ', playerJets)
+    let movingJets = []
 
     function handleClick(e) {
         console.log(jetSelected)
         if (jetSelected) {
-            jetSelected.properties.startLocation = jetSelected.properties.location
-            jetSelected.properties.target = projection.invert(transform.invert(d3.pointer(e, svg)))
-            jetSelected.properties.pointDistance = Math.sqrt(Math.pow(jetSelected.properties.target[0] - jetSelected.properties.location[0], 2) + Math.pow(jetSelected.properties.target[1] - jetSelected.properties.location[1], 2))
-            jetSelected.properties.targetDistance = 0;
-            if (movingObjects.indexOf(jetSelected) === -1) {
-                movingObjects.push(jetSelected)
+            jetSelected.startLocation = jetSelected.location
+            jetSelected.target = projection.invert(transform.invert(d3.pointer(e, svg)))
+            jetSelected.pointDistance = Math.sqrt(Math.pow(jetSelected.target[0] - jetSelected.location[0], 2) + Math.pow(jetSelected.target[1] - jetSelected.location[1], 2))
+            jetSelected.targetDistance = 0;
+            if (movingJets.indexOf(jetSelected) === -1) {
+                movingJets.push(jetSelected)
             }
             jetSelected = ''
             return
         }
 
-        if (activeHudItem.name === 'Tiki Bar' && playerCredits >= activeHudItem.cost) {
-            playerCredits -= activeHudItem.cost
-            activeHudItem.cost += 5
-            hudItems = hudItems
+        if (activeHudItem.name === 'Tiki Bar' && nations[0].credits >= nations[0].items.tikibar.cost) {
+            nations[0].credits -= nations[0].items.tikibar.cost
+            nations[0].items.tikibar.cost += nations[0].items.tikibar.costIncrease
 
             // activeHudItem = ''
 
@@ -836,96 +860,15 @@
             return
         }
 
-        if (activeHudItem.name === 'Jet' && playerCredits >= activeHudItem.cost) {
-            playerCredits -= activeHudItem.cost
-            activeHudItem.cost += 5
-            hudItems = hudItems
-
-            // activeHudItem = ''
-
-            playerJets = [...playerJets, {
-                properties: {
-                    team: 1,
-                    nation: 'USA',
-                    location: projection.invert(transform.invert(d3.pointer(e, svg))),
-                    startLocation: [],
-                    target: [],
-                    targetDistance: 0,
-                    pointDistance: 0
-                },
-                move() {
-                    this.properties.targetDistance = this.properties.targetDistance + 0.01/this.properties.pointDistance
-                    this.properties.location = interpolate(this.properties.startLocation, this.properties.target, this.properties.targetDistance)
-                    if (Math.sqrt(Math.pow(this.properties.target[0] - this.properties.location[0], 2) + Math.pow(this.properties.target[1] - this.properties.location[1], 2)) < 0.1) {
-                        movingObjects.splice(movingObjects.indexOf(this), 1)
-                        this.properties.startLocation = []
-                        this.properties.target = []
-                        this.properties.targetDistance = 0
-                    }
-                    playerJets = playerJets
-                }
-            }]
-
-            let pointData = {};
-            pointData.x = projection(playerJets[playerJets.length-1].properties.location)[0];
-            pointData.y = projection(playerJets[playerJets.length-1].properties.location)[1];
-            pointData.point = playerJets[playerJets.length-1];
-
-            jetData.push(pointData);
-
+        if (activeHudItem.name === 'Jet') {
+            nations[0].component.buildJet(projection.invert(transform.invert(d3.pointer(e, svg))))
             return
         }
 
         console.log('activeHud: ', activeHudItem)
         if (hovered) {
-            if (activeHudItem.name === 'City' && playerCredits >= activeHudItem.cost) {
-                playerCredits -= activeHudItem.cost
-                activeHudItem.cost += 5
-                hudItems = hudItems
-      
-                // activeHudItem = ''
-
-                let citiesInCountry = cityNamesDataset.filter(city => city.properties.adm0_a3 === hovered.properties.ADM0_A3)
-                citiesInCountry.reverse()
-                let newCity = citiesInCountry.find(city => citiesUsed.every(c => c !== city.properties.ne_id))
-
-                if (!newCity) {
-                    newCity = { properties: { name: 'No more cities' }}
-                } else {
-                    citiesUsed.push(newCity.properties.ne_id)
-                }
-
-                const center = projection.invert(transform.invert(d3.pointer(e, svg)))
-
-                playerCities = [...playerCities, {
-                    properties: {
-                        name: newCity.properties.name,
-                        nameLength: newCity.properties.name.length,
-                        population: 1,
-                        ticked: 0,
-                        ticksPerCredit: 100,
-                        ticksPerGrowth: 1200,
-                        growthRate: (Math.floor(Math.random()*10)/10)+1, // 1.0-2.0
-                        center: center,
-                        visible: true,
-                    },
-                    tick() {
-                        this.properties.ticked++ 
-                        if (this.properties.ticked % this.properties.ticksPerCredit === 0) {
-                            // playerCredits += Math.floor(this.properties.population/2) + 1
-                            playerCredits += this.properties.population
-                        }
-                        if (this.properties.ticked % this.properties.ticksPerGrowth === 0) {
-                            this.properties.population += 1
-                        }
-                    }
-                }]
-
-                let pointData = {};
-                pointData.x = projection(center[0]);
-                pointData.y = projection(center[1]);
-                pointData.point = playerCities[playerCities.length - 1];
-                tier1data.push(pointData);
+            if (activeHudItem.name === 'City') {
+                nations[0].component.buildCity(projection.invert(transform.invert(d3.pointer(e, svg))))
                 return
             }
         }
@@ -943,21 +886,7 @@
     }
 
     let activeHudItem;
-    let hudItems = [
-        {
-            name: 'City',
-            cost: 10,
-        },
-        {
-            name: 'Tiki Bar',
-            cost: 500
-        },
-        {
-            name: 'Jet',
-            cost: 100
-        }
-    ]
-
+    
     function toggleItem(item) {
         if (activeHudItem === item) {
             activeHudItem = ''
@@ -965,6 +894,74 @@
             activeHudItem = item
         }
     }
+
+    let items = {
+            city: {
+                name: 'City',
+                cost: 10,
+                costIncrease: 10
+            },
+            tikibar: {
+                name: 'Tiki Bar',
+                cost: 500,
+                costIncrease: 50
+            },
+            jet: {
+                name: 'Jet',
+                cost: 10,
+                costIncrease: 200
+            }
+        }
+
+    let nationStrategies = {
+        blank: {
+            purchaseIndex: 0
+        },
+        defensive: {
+            name: 'Defensive',
+            purchaseOrder: ['jet', 'city'],
+            purchaseIndex: 0
+        }
+    }
+
+    let nations = [
+        {
+            name: 'United States of America',
+            geometry: getGeometry('United States of America'),
+            flag: US,
+            team: 1,
+            strategy: structuredClone(nationStrategies.blank),
+            credits: 1000,
+            items: structuredClone(items),
+            cities: [],
+            citiesUsed: [],
+            tikibars: [],
+            jets: []
+        },
+        {
+            name: 'Brazil',
+            geometry: getGeometry('Brazil'),
+            flag: BR,
+            team: 2,
+            strategy: structuredClone(nationStrategies.defensive),
+            credits: 10,
+            items: structuredClone(items),
+            cities: [],
+            citiesUsed: [],
+            tikibars: [],
+            jets: []
+        }
+    ]
+    
+    
+
+    console.log('dataset: ', dataset)
+    function getGeometry(countryName) {
+        const country = dataset.find(country => country.properties.NAME === countryName)
+        return country.geometry
+    }
+
+    $: console.log(nations)
 </script>
 
 <svelte:window
@@ -974,6 +971,32 @@
 	bind:innerWidth={clientX}
 	bind:innerHeight={clientY}
 />
+
+
+{#if jetSelected}
+    <div style="
+        position: absolute;
+        left: {transform.apply(projection(jetSelected.location))[0] - 75}px;
+        top: {transform.apply(projection(jetSelected.location))[1] - 60}px;
+        display: flex;
+        gap: 8px;
+    ">
+        <div class="context-item" style="background: {jetSelected.guardMode  ? '#3087EC' : '#45444E'}" on:click|stopPropagation={() => {
+            jetSelected.guardMode = !jetSelected.guardMode
+            nations = nations
+            jetSelected = ''
+        }}>
+            {#if jetSelected.guardMode}
+                Guarding
+            {:else}
+                Guard Area
+            {/if}
+        </div>
+        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => console.log('cool')}>
+            Create Patrol
+        </div>
+    </div>
+{/if}
 
 {#if debugMenu}
     <div style="height: 10px; background-color: black; width: 100%;">
@@ -1044,30 +1067,38 @@
     {/key}
 {/if}
 
-<div class="top-hud">
-    <div style="font-weight: 700; text-shadow: rgb(255, 255, 255) 1px 0px 0px, rgb(255, 255, 255) 0.540302px 0.841471px 0px, rgb(255, 255, 255) -0.416147px 0.909297px 0px, rgb(255, 255, 255) -0.989992px 0.14112px 0px, rgb(255, 255, 255) -0.653644px -0.756802px 0px, rgb(255, 255, 255) 0.283662px -0.958924px 0px, rgb(255, 255, 255) 0.96017px -0.279415px 0px;">
-        UNITED STATES
-    </div>
-    <div class="hud-item" style="background: #00640A">
-        Credits
-        <span style="display: flex; align-items: center; gap: 4px;">
-            {playerCredits}
-            <svg width="14" height="14" viewBox="0 0 8 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M5.97825 3.17472H7.84473C7.78507 2.66903 7.6487 2.22017 7.43564 1.82812C7.22541 1.43608 6.95268 1.10511 6.61746 0.835227C6.28223 0.5625 5.89728 0.355114 5.46263 0.213068C5.03081 0.0710227 4.56206 0 4.05638 0C3.28933 0 2.59899 0.176136 1.98535 0.528409C1.43691 0.840719 0.990581 1.28011 0.646377 1.84659H3.12865C3.41499 1.7036 3.73844 1.6321 4.09899 1.6321C4.34899 1.6321 4.58052 1.66761 4.79359 1.73864C5.0095 1.80966 5.19984 1.91193 5.36461 2.04545C5.52939 2.17898 5.66433 2.34091 5.76944 2.53125C5.87456 2.71875 5.94416 2.93324 5.97825 3.17472ZM2.18139 2.84659H0.206126C0.11503 3.15696 0.0528697 3.49029 0.0196455 3.84659H1.89995C1.94305 3.50857 2.02266 3.20649 2.13876 2.94034C2.15255 2.90852 2.16676 2.87727 2.18139 2.84659ZM1.873 4.84659H0C0.017836 5.20117 0.0622835 5.5345 0.133343 5.84659H2.05936C1.95903 5.55441 1.89691 5.22107 1.873 4.84659ZM2.70565 6.84659H0.487904C0.498255 6.86708 0.508768 6.88744 0.519443 6.90767C0.874557 7.57528 1.35751 8.08523 1.96831 8.4375C2.58194 8.78977 3.27797 8.96591 4.05638 8.96591C4.61603 8.96591 5.11745 8.8821 5.56064 8.71449C6.00666 8.54403 6.39018 8.31392 6.71121 8.02415C7.03507 7.73153 7.29217 7.40057 7.48251 7.03125C7.67569 6.65909 7.79643 6.27273 7.84473 5.87216L5.97825 5.86364C5.93564 6.09659 5.85893 6.30398 5.74814 6.4858C5.64018 6.66761 5.50382 6.82244 5.33905 6.95028C5.17427 7.07528 4.98535 7.17045 4.77228 7.2358C4.56206 7.30114 4.33336 7.33381 4.0862 7.33381C3.64586 7.33381 3.25808 7.22585 2.92285 7.00994C2.84663 6.96085 2.77423 6.9064 2.70565 6.84659Z" fill="white"/>
-            </svg>
-        </span>
-    </div>
-    {#each hudItems as item} 
-        <div class="hud-item" style="background: {playerCredits >= item.cost ? (activeHudItem === item ? '#3087EC' : '#45444E') : '#747479'}" on:click|stopPropagation={() => toggleItem(item)}>
-            {item.name} 
-            <span style="display: flex; align-items: center; gap: 4px;">
-                {item.cost}
-                <svg width="14" height="14" viewBox="0 0 8 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M5.97825 3.17472H7.84473C7.78507 2.66903 7.6487 2.22017 7.43564 1.82812C7.22541 1.43608 6.95268 1.10511 6.61746 0.835227C6.28223 0.5625 5.89728 0.355114 5.46263 0.213068C5.03081 0.0710227 4.56206 0 4.05638 0C3.28933 0 2.59899 0.176136 1.98535 0.528409C1.43691 0.840719 0.990581 1.28011 0.646377 1.84659H3.12865C3.41499 1.7036 3.73844 1.6321 4.09899 1.6321C4.34899 1.6321 4.58052 1.66761 4.79359 1.73864C5.0095 1.80966 5.19984 1.91193 5.36461 2.04545C5.52939 2.17898 5.66433 2.34091 5.76944 2.53125C5.87456 2.71875 5.94416 2.93324 5.97825 3.17472ZM2.18139 2.84659H0.206126C0.11503 3.15696 0.0528697 3.49029 0.0196455 3.84659H1.89995C1.94305 3.50857 2.02266 3.20649 2.13876 2.94034C2.15255 2.90852 2.16676 2.87727 2.18139 2.84659ZM1.873 4.84659H0C0.017836 5.20117 0.0622835 5.5345 0.133343 5.84659H2.05936C1.95903 5.55441 1.89691 5.22107 1.873 4.84659ZM2.70565 6.84659H0.487904C0.498255 6.86708 0.508768 6.88744 0.519443 6.90767C0.874557 7.57528 1.35751 8.08523 1.96831 8.4375C2.58194 8.78977 3.27797 8.96591 4.05638 8.96591C4.61603 8.96591 5.11745 8.8821 5.56064 8.71449C6.00666 8.54403 6.39018 8.31392 6.71121 8.02415C7.03507 7.73153 7.29217 7.40057 7.48251 7.03125C7.67569 6.65909 7.79643 6.27273 7.84473 5.87216L5.97825 5.86364C5.93564 6.09659 5.85893 6.30398 5.74814 6.4858C5.64018 6.66761 5.50382 6.82244 5.33905 6.95028C5.17427 7.07528 4.98535 7.17045 4.77228 7.2358C4.56206 7.30114 4.33336 7.33381 4.0862 7.33381C3.64586 7.33381 3.25808 7.22585 2.92285 7.00994C2.84663 6.96085 2.77423 6.9064 2.70565 6.84659Z" fill="white"/>
-                </svg>
-            </span>
+<div style="display: flex; position: absolute;">    
+{#each nations as nation, i}
+    {#if i === 0 || debugMenu}
+        <div class="top-hud">  
+            <div style="font-weight: 700; color: black; text-shadow: rgb(255, 255, 255) 1px 0px 0px, rgb(255, 255, 255) 0.540302px 0.841471px 0px, rgb(255, 255, 255) -0.416147px 0.909297px 0px, rgb(255, 255, 255) -0.989992px 0.14112px 0px, rgb(255, 255, 255) -0.653644px -0.756802px 0px, rgb(255, 255, 255) 0.283662px -0.958924px 0px, rgb(255, 255, 255) 0.96017px -0.279415px 0px;">
+                {nation.name}
+            </div>
+            
+            <div class="hud-item" style="background: #00640A">
+                Credits
+                <span style="display: flex; align-items: center; gap: 4px;">
+                    {nation.credits}
+                    <svg width="14" height="14" viewBox="0 0 8 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M5.97825 3.17472H7.84473C7.78507 2.66903 7.6487 2.22017 7.43564 1.82812C7.22541 1.43608 6.95268 1.10511 6.61746 0.835227C6.28223 0.5625 5.89728 0.355114 5.46263 0.213068C5.03081 0.0710227 4.56206 0 4.05638 0C3.28933 0 2.59899 0.176136 1.98535 0.528409C1.43691 0.840719 0.990581 1.28011 0.646377 1.84659H3.12865C3.41499 1.7036 3.73844 1.6321 4.09899 1.6321C4.34899 1.6321 4.58052 1.66761 4.79359 1.73864C5.0095 1.80966 5.19984 1.91193 5.36461 2.04545C5.52939 2.17898 5.66433 2.34091 5.76944 2.53125C5.87456 2.71875 5.94416 2.93324 5.97825 3.17472ZM2.18139 2.84659H0.206126C0.11503 3.15696 0.0528697 3.49029 0.0196455 3.84659H1.89995C1.94305 3.50857 2.02266 3.20649 2.13876 2.94034C2.15255 2.90852 2.16676 2.87727 2.18139 2.84659ZM1.873 4.84659H0C0.017836 5.20117 0.0622835 5.5345 0.133343 5.84659H2.05936C1.95903 5.55441 1.89691 5.22107 1.873 4.84659ZM2.70565 6.84659H0.487904C0.498255 6.86708 0.508768 6.88744 0.519443 6.90767C0.874557 7.57528 1.35751 8.08523 1.96831 8.4375C2.58194 8.78977 3.27797 8.96591 4.05638 8.96591C4.61603 8.96591 5.11745 8.8821 5.56064 8.71449C6.00666 8.54403 6.39018 8.31392 6.71121 8.02415C7.03507 7.73153 7.29217 7.40057 7.48251 7.03125C7.67569 6.65909 7.79643 6.27273 7.84473 5.87216L5.97825 5.86364C5.93564 6.09659 5.85893 6.30398 5.74814 6.4858C5.64018 6.66761 5.50382 6.82244 5.33905 6.95028C5.17427 7.07528 4.98535 7.17045 4.77228 7.2358C4.56206 7.30114 4.33336 7.33381 4.0862 7.33381C3.64586 7.33381 3.25808 7.22585 2.92285 7.00994C2.84663 6.96085 2.77423 6.9064 2.70565 6.84659Z" fill="white"/>
+                    </svg>
+                </span>
+            </div>
+            {#each Object.entries(nation.items) as [itemKey, item]} 
+                <div class="hud-item" style="background: {nation.credits >= item.cost ? (activeHudItem === item ? '#3087EC' : '#45444E') : '#747479'}" on:click|stopPropagation={() => toggleItem(item)}>
+                    {item.name} 
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                        {item.cost}
+                        <svg width="14" height="14" viewBox="0 0 8 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M5.97825 3.17472H7.84473C7.78507 2.66903 7.6487 2.22017 7.43564 1.82812C7.22541 1.43608 6.95268 1.10511 6.61746 0.835227C6.28223 0.5625 5.89728 0.355114 5.46263 0.213068C5.03081 0.0710227 4.56206 0 4.05638 0C3.28933 0 2.59899 0.176136 1.98535 0.528409C1.43691 0.840719 0.990581 1.28011 0.646377 1.84659H3.12865C3.41499 1.7036 3.73844 1.6321 4.09899 1.6321C4.34899 1.6321 4.58052 1.66761 4.79359 1.73864C5.0095 1.80966 5.19984 1.91193 5.36461 2.04545C5.52939 2.17898 5.66433 2.34091 5.76944 2.53125C5.87456 2.71875 5.94416 2.93324 5.97825 3.17472ZM2.18139 2.84659H0.206126C0.11503 3.15696 0.0528697 3.49029 0.0196455 3.84659H1.89995C1.94305 3.50857 2.02266 3.20649 2.13876 2.94034C2.15255 2.90852 2.16676 2.87727 2.18139 2.84659ZM1.873 4.84659H0C0.017836 5.20117 0.0622835 5.5345 0.133343 5.84659H2.05936C1.95903 5.55441 1.89691 5.22107 1.873 4.84659ZM2.70565 6.84659H0.487904C0.498255 6.86708 0.508768 6.88744 0.519443 6.90767C0.874557 7.57528 1.35751 8.08523 1.96831 8.4375C2.58194 8.78977 3.27797 8.96591 4.05638 8.96591C4.61603 8.96591 5.11745 8.8821 5.56064 8.71449C6.00666 8.54403 6.39018 8.31392 6.71121 8.02415C7.03507 7.73153 7.29217 7.40057 7.48251 7.03125C7.67569 6.65909 7.79643 6.27273 7.84473 5.87216L5.97825 5.86364C5.93564 6.09659 5.85893 6.30398 5.74814 6.4858C5.64018 6.66761 5.50382 6.82244 5.33905 6.95028C5.17427 7.07528 4.98535 7.17045 4.77228 7.2358C4.56206 7.30114 4.33336 7.33381 4.0862 7.33381C3.64586 7.33381 3.25808 7.22585 2.92285 7.00994C2.84663 6.96085 2.77423 6.9064 2.70565 6.84659Z" fill="white"/>
+                        </svg>
+                    </span>
+                </div>
+            {/each}
         </div>
-    {/each}
+    {/if}
+{/each}
+</div>
     <!-- <div class="hud-item" style="background: {activeHudItem === 'city' ? '#3087EC' : '#45444E'}" on:click|stopPropagation={() => { activeHudItem = 'city' }}>
         City {cityCost}
         <svg width="14" height="14" viewBox="0 0 8 9" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1086,7 +1117,6 @@
             <path fill-rule="evenodd" clip-rule="evenodd" d="M5.97825 3.17472H7.84473C7.78507 2.66903 7.6487 2.22017 7.43564 1.82812C7.22541 1.43608 6.95268 1.10511 6.61746 0.835227C6.28223 0.5625 5.89728 0.355114 5.46263 0.213068C5.03081 0.0710227 4.56206 0 4.05638 0C3.28933 0 2.59899 0.176136 1.98535 0.528409C1.43691 0.840719 0.990581 1.28011 0.646377 1.84659H3.12865C3.41499 1.7036 3.73844 1.6321 4.09899 1.6321C4.34899 1.6321 4.58052 1.66761 4.79359 1.73864C5.0095 1.80966 5.19984 1.91193 5.36461 2.04545C5.52939 2.17898 5.66433 2.34091 5.76944 2.53125C5.87456 2.71875 5.94416 2.93324 5.97825 3.17472ZM2.18139 2.84659H0.206126C0.11503 3.15696 0.0528697 3.49029 0.0196455 3.84659H1.89995C1.94305 3.50857 2.02266 3.20649 2.13876 2.94034C2.15255 2.90852 2.16676 2.87727 2.18139 2.84659ZM1.873 4.84659H0C0.017836 5.20117 0.0622835 5.5345 0.133343 5.84659H2.05936C1.95903 5.55441 1.89691 5.22107 1.873 4.84659ZM2.70565 6.84659H0.487904C0.498255 6.86708 0.508768 6.88744 0.519443 6.90767C0.874557 7.57528 1.35751 8.08523 1.96831 8.4375C2.58194 8.78977 3.27797 8.96591 4.05638 8.96591C4.61603 8.96591 5.11745 8.8821 5.56064 8.71449C6.00666 8.54403 6.39018 8.31392 6.71121 8.02415C7.03507 7.73153 7.29217 7.40057 7.48251 7.03125C7.67569 6.65909 7.79643 6.27273 7.84473 5.87216L5.97825 5.86364C5.93564 6.09659 5.85893 6.30398 5.74814 6.4858C5.64018 6.66761 5.50382 6.82244 5.33905 6.95028C5.17427 7.07528 4.98535 7.17045 4.77228 7.2358C4.56206 7.30114 4.33336 7.33381 4.0862 7.33381C3.64586 7.33381 3.25808 7.22585 2.92285 7.00994C2.84663 6.96085 2.77423 6.9064 2.70565 6.84659Z" fill="white"/>
         </svg>
     </div> -->
-</div>
 
 
 <svg class="map" bind:this={svg} width={clientX} height={clientY} viewBox="0 0 {clientX} {clientY}">
@@ -1409,7 +1439,7 @@
 			{/if}
 		{/each} -->
 
-        {#each playerCities as data}
+        <!-- {#each playerCities as data}
             {#if data.properties.visible}
             <text
                 x={mapTiler(projection(data.properties.center))[0] - data.properties.nameLength / transform.k}
@@ -1441,7 +1471,7 @@
                 stroke-width={0.75 / transform.k}
             />
             {/if}
-        {/each}
+        {/each} -->
         {#each playerTikiBars as tikiBar}
             <svg 
                 x={mapTiler(projection(tikiBar.properties.location))[0] - 40 / transform.k / 2}
@@ -1461,7 +1491,7 @@
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M29.3444 21.0945H12.0274V22.0762H29.3444V21.0945ZM29.3443 23.6704H12.0273V24.6108H29.3443V23.6704Z" fill="#FEAF7A"/>
             </svg>            
         {/each}
-        {#each enemyJets as jet}                    
+        <!-- {#each enemyJets as jet}                    
             <svg
                 x={mapTiler(projection(jet.properties.location))[0] - 18 / transform.k / 2}
                 y={mapTiler(projection(jet.properties.location))[1] - 18 / transform.k / 2}
@@ -1487,13 +1517,13 @@
             height={30/transform.k}
             stroke="none"
             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 513 342"><path fill="#009b3a" d="M0 0h513v342H0z"/><path fill="#fedf00" d="m256.5 19.3 204.9 151.4L256.5 322 50.6 170.7z"/><circle fill="#FFF" cx="256.5" cy="171" r="80.4"/><path fill="#002776" d="M215.9 165.7c-13.9 0-27.4 2.1-40.1 6 .6 43.9 36.3 79.3 80.3 79.3 27.2 0 51.3-13.6 65.8-34.3-24.9-31-63.2-51-106-51zM334.9 186c.9-5 1.5-10.1 1.5-15.4 0-44.4-36-80.4-80.4-80.4-33.1 0-61.5 20.1-73.9 48.6 10.9-2.2 22.1-3.4 33.6-3.4 46.8.1 89 19.5 119.2 50.6z"/></svg>
-            <!-- <image 
+             <image 
                 x={mapTiler(projection(jet.properties.location))[0] + 12 / transform.k / 2}
                 y={mapTiler(projection(jet.properties.location))[1] - 56 / transform.k / 2} 
                 width={30/transform.k} 
                 alt="Brazil" href="./src/lib/flags/simple/BR.svg" 
             /> -->
-            <circle               
+            <!-- <circle               
                 cx={mapTiler(projection(jet.properties.location))[0]}
                 cy={mapTiler(projection(jet.properties.location))[1]} 
                 r={10}
@@ -1501,14 +1531,19 @@
                 stroke="red"
                 opacity="0.5"
                 stroke-width={1 / transform.k}
-            />
+            /> -->
 
 
+        <!-- {/each} --> 
+
+        {#each nations as nation, i}
+            <Nation isPlayer={i === 0} bind:jetSelected bind:this={nation.component} bind:nation bind:nations bind:movingJets {mapTiler} {projection} {transform} {cityNamesDataset} />
         {/each}
-        {#each playerJets as jet}                    
+
+        <!-- {#each nations[0].jets as jet}                    
             <svg
-                x={mapTiler(projection(jet.properties.location))[0] - 18 / transform.k / 2}
-                y={mapTiler(projection(jet.properties.location))[1] - 18 / transform.k / 2}
+                x={mapTiler(projection(jet.location))[0] - 18 / transform.k / 2}
+                y={mapTiler(projection(jet.location))[1] - 18 / transform.k / 2}
                 width={18/transform.k}
                 height={18/transform.k}
                 viewBox="0 0 30 30"
@@ -1527,15 +1562,15 @@
                 on:click|stopPropagation={() => {
                     jetSelected = jet
                 }}  
-                cx={mapTiler(projection(jet.properties.location))[0]}
-                cy={mapTiler(projection(jet.properties.location))[1]} 
+                cx={mapTiler(projection(jet.location))[0]}
+                cy={mapTiler(projection(jet.location))[1]} 
                 r={20 / transform.k}
                 fill="transparent"
                 stroke="white"
                 stroke-width={1 / transform.k}
                 class="jet-helper"
             />
-        {/each}
+        {/each} -->
 		{#each stateNamesDataset as data}
 			{#if data.properties.visible}
 				<text
@@ -1601,13 +1636,21 @@
 	}
     
     .top-hud {
-        position: absolute;
         display: flex;
         flex-direction: column;
         align-items: left;
         gap: 8px;
         margin: 16px;
     }
+
+    .context-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: white;
+        border-radius: 3px; 
+        padding: 3px 12px 3px 12px;
+    } 
 
     .hud-item {
         display: flex;
@@ -1617,11 +1660,7 @@
         color: white;
         border-radius: 3px; 
         padding: 3px 12px 3px 12px;
-    }
-
-    .jet-helper:hover {
-        fill: rgba(255, 255, 255, 0.2);
-    }
+    } 
 
 
 	.tooltip {
