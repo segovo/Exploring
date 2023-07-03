@@ -12,10 +12,12 @@
 	// import * as complexWorldMap from '$lib/map/world.json';
 	// import * as worldMap from '$lib/map/world.json';
 	// import * as veryComplexWorldMap from '$lib/map/ne_10m_admin_0_countries.json';
-	import * as neworldMap from '$lib/map/ne_50m_admin_0_countries_lakes.json';
-	// import * as neworldMap from '$lib/map/ne_110m_admin_0_countries_lakes.json'
-	import * as neboundaryLinesStates from '$lib/map/ne_50m_admin_1_states_provinces_lakes_lines.json';
-	import * as neboundaryLines from '$lib/map/ne_50m_admin_0_boundary_lines_land.json';
+	// import * as neworldMap from '$lib/map/ne_50m_admin_0_countries_lakes.json';
+	import * as neworldMap from '$lib/map/ne_110m_admin_0_countries_lakes.json'
+	// import * as neboundaryLinesStates from '$lib/map/ne_50m_admin_1_states_provinces_lakes_lines.json';
+    import * as neboundaryLinesStates from '$lib/map/ne_110m_admin_1_states_provinces_lines.json';
+	// import * as neboundaryLines from '$lib/map/ne_50m_admin_0_boundary_lines_land.json';
+    import * as neboundaryLines from '$lib/map/ne_110m_admin_0_boundary_lines_land.json';
 	import * as populatedPlaces from '$lib/map/ne_50m_populated_places_simple.json';
 	import * as states from '$lib/map/ne_50m_admin_1_states_provinces_lakes.json';
 	import * as urbanAreas from '$lib/map/ne_50m_urban_areas.json';
@@ -24,9 +26,12 @@
 	import * as countryCenters from '$lib/data/countrycenters.json';
 	import * as importAirports from '$lib/data/airports/ne_10m_airports.json';
 	import airportIcon from '$lib/icons/airport.svg';
+    import NationTerritory from '$lib/components/NationTerritory.svelte'
     import Nation from '$lib/components/Nation.svelte'
     import BR from '$lib/components/flags/BR.svelte'
     import US from '$lib/components/flags/US.svelte'
+    import RU from '$lib/components/flags/RU.svelte'
+
 
 	let airports = importAirports;
 	const geojson = neworldMap;
@@ -35,7 +40,7 @@
 
 	let countryNamesDataset = geojson.features;
 	let cityNamesDataset = populatedPlaces.features;
-	let stateNamesDataset = states.features;
+	// let stateNamesDataset = states.features;
 
 	const countryData = Object.entries(countryJson.default);
 
@@ -87,8 +92,16 @@
 		});
 	});
 
-	let boundaryLinesStates = [];
-	neboundaryLinesStates.geometries.forEach((geojson, i) => {
+	// let boundaryLinesStates = [];
+	// neboundaryLinesStates.geometries.forEach((geojson, i) => {
+	// 	const chunks = turf.lineChunk(geojson, 200);
+	// 	chunks.features.forEach((chunk) => {
+	// 		chunk.center = turf.centroid(chunk);
+	// 		boundaryLinesStates.push(chunk);
+	// 	});
+	// });
+    let boundaryLinesStates = [];
+	neboundaryLinesStates.features.forEach((geojson, i) => {
 		const chunks = turf.lineChunk(geojson, 200);
 		chunks.features.forEach((chunk) => {
 			chunk.center = turf.centroid(chunk);
@@ -203,6 +216,57 @@
             currentTick++;
             
             nations.forEach(nation => {if (nation.component != null) nation.component?.tick(currentTick)})
+
+            if (currentTick % 100 === 0) {
+                // Calculate nation borders
+                nations.forEach(nation => {
+                    let countries = []
+                    dataset.forEach(country => {
+                        nation.cities.forEach(city => {
+                            const isInside = turf.booleanPointInPolygon(city.center, country.geometry)
+                            if (isInside) {
+                                if (countries.indexOf(country) === -1) {
+                                    countries.push(country);
+                                }
+                            }
+                        })
+                    })
+                    nation.countries = countries
+
+                    // const points = nation.countries.reduce((total, country) => {
+                    //         const coords = turf.coordAll(country);
+                    //         const points = coords.map(coord => turf.point(coord))
+                    //         // const points = turf.explode(country)
+                    //         return total.concat(points);
+                    //     }, []);
+                    // console.log(points)
+                    if (nation.countries.length) {
+                        const union = nation.countries.reduce((union, country) => {
+                            // const poly = turf.flatten(country);
+                            if (!Array.isArray(union)) {
+                                console.log('1')
+                                return turf.union(union, country)
+                            } else {
+                                console.log('2')
+                                return country
+                            }
+                            // const points = coords.map(coord => turf.point(coord))
+                            // const points = turf.explode(country)
+                            // console.log('flat')
+                            // return total.concat(poly);
+                        }, []);
+        
+                    nation.border = union
+                    }
+    
+                    // console.log('featureCollection: ', turf.featureCollection(points))
+                    // console.log(path(turf.concave(turf.featureCollection(points))))
+                })
+
+
+
+                // console.log(nations)
+            }
 
             // let jetQuadtree = d3
             // 	.quadtree()
@@ -358,21 +422,21 @@
 	// 	tier2data.push(pointData);
 	// });
 
-	stateNamesDataset.forEach((point) => {
-		console.log('adding');
-		let pointData = {};
+	// stateNamesDataset.forEach((point) => {
+	// 	console.log('adding');
+	// 	let pointData = {};
 
-		const centerX = (point.bbox[0] + point.bbox[2]) / 2;
-		const centerY = (point.bbox[1] + point.bbox[3]) / 2;
-		point.properties.center = [centerX, centerY];
-		// pointData.x = projection(point.geometry.coordinates)[0];
-		// pointData.y = projection(point.geometry.coordinates)[1];
-		pointData.x = projection(centerX);
-		pointData.y = projection(centerY);
-		pointData.point = point;
+	// 	const centerX = (point.bbox[0] + point.bbox[2]) / 2;
+	// 	const centerY = (point.bbox[1] + point.bbox[3]) / 2;
+	// 	point.properties.center = [centerX, centerY];
+	// 	// pointData.x = projection(point.geometry.coordinates)[0];
+	// 	// pointData.y = projection(point.geometry.coordinates)[1];
+	// 	pointData.x = projection(centerX);
+	// 	pointData.y = projection(centerY);
+	// 	pointData.point = point;
 
-		tier2data.push(pointData);
-	});
+	// 	tier2data.push(pointData);
+	// });
 
 	// airports.features.forEach((airport) => {
 	// 	let pointData = {};
@@ -525,7 +589,7 @@
 		// console.log('SIZE: ', quadtree.size());
 		airports = airports;
 		countryNamesDataset = countryNamesDataset;
-		stateNamesDataset = stateNamesDataset;
+		// stateNamesDataset = stateNamesDataset;
 		cityNamesDataset = cityNamesDataset;
 	}
 
@@ -731,14 +795,40 @@
 		requestAnimationFrame(loop);
 	}
 
+    function stopJet(jet) {
+        movingJets.splice(movingJets.indexOf(jet), 1)
+        jet.startLocation = []
+        jet.target = []
+        jet.targetDistance = 0
+        movingJets = movingJets
+    }
+    
     function moveJet(jet) {
-        jet.targetDistance = jet.targetDistance + 0.01/jet.pointDistance
+        jet.targetDistance = jet.targetDistance + 0.005/jet.pointDistance
         jet.location = interpolate(jet.startLocation, jet.target, jet.targetDistance)
+
+        jet.rotation = turf.bearing(jet.location, jet.target) + 45
+        
+        if (jet.waypoints.moving) {
+            const projectedPoints = jet.waypoints.points.map(point => projection(point))
+            projectedPoints.unshift(projection(jet.location))
+            jet.waypoints.path = d3.line()(projectedPoints)
+        }
+
         if (Math.sqrt(Math.pow(jet.target[0] - jet.location[0], 2) + Math.pow(jet.target[1] - jet.location[1], 2)) < 0.1) {
-            movingJets.splice(movingJets.indexOf(jet), 1)
-            jet.startLocation = []
-            jet.target = []
-            jet.targetDistance = 0
+            if (jet.patrol.patrolling) {
+                jet.patrol.nextPoint++
+            } 
+            if (jet.waypoints.moving) {
+                if (jet.waypoints.points.length) {
+                    jet.waypoints.points.splice(0, 1)
+                    if (!jet.waypoints.points.length) {
+                        jet.waypoints.moving = false
+                        jet.waypoints.path = ''
+                    }
+                }
+            }
+            stopJet(jet)
         }
         nations = nations    
     }
@@ -831,16 +921,32 @@
     let movingJets = []
 
     function handleClick(e) {
-        console.log(jetSelected)
+        if (jetPatrolUI) {
+            jetSelected.patrol.points = [...jetSelected.patrol.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
+            const projectedPoints = jetSelected.patrol.points.map(point => projection(point))
+            jetSelected.patrol.path = d3.line()(projectedPoints)
+            jetSelected.patrol.endToStartPath = d3.line()([projectedPoints[projectedPoints.length - 1], projectedPoints[0]])
+            return
+        }
+
         if (jetSelected) {
-            jetSelected.startLocation = jetSelected.location
-            jetSelected.target = projection.invert(transform.invert(d3.pointer(e, svg)))
-            jetSelected.pointDistance = Math.sqrt(Math.pow(jetSelected.target[0] - jetSelected.location[0], 2) + Math.pow(jetSelected.target[1] - jetSelected.location[1], 2))
-            jetSelected.targetDistance = 0;
-            if (movingJets.indexOf(jetSelected) === -1) {
-                movingJets.push(jetSelected)
-            }
-            jetSelected = ''
+            jetSelected.waypoints.points = [...jetSelected.waypoints.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
+            const projectedPoints = jetSelected.waypoints.points.map(point => projection(point))
+            projectedPoints.unshift(projection(jetSelected.location))
+            jetSelected.waypoints.path = d3.line()(projectedPoints)
+            jetSelected.waypoints.moving = true;
+
+            jetSelected.guardMode = false;
+            jetSelected.patrol.patrolling = false;
+            // jetSelected = ''
+            // jetSelected.startLocation = jetSelected.location
+            // jetSelected.target = projection.invert(transform.invert(d3.pointer(e, svg)))
+            // jetSelected.pointDistance = Math.sqrt(Math.pow(jetSelected.target[0] - jetSelected.location[0], 2) + Math.pow(jetSelected.target[1] - jetSelected.location[1], 2))
+            // jetSelected.targetDistance = 0;
+            // if (movingJets.indexOf(jetSelected) === -1) {
+            //     movingJets.push(jetSelected)
+            // }
+            // jetSelected = ''
             return
         }
 
@@ -888,6 +994,7 @@
     let activeHudItem;
     
     function toggleItem(item) {
+        jetSelected = null
         if (activeHudItem === item) {
             activeHudItem = ''
         } else {
@@ -909,7 +1016,7 @@
             jet: {
                 name: 'Jet',
                 cost: 10,
-                costIncrease: 200
+                costIncrease: 10
             }
         }
 
@@ -919,17 +1026,23 @@
         },
         defensive: {
             name: 'Defensive',
-            purchaseOrder: ['jet', 'city'],
+            purchaseOrder: ['city', 'jet', 'jet'],
             purchaseIndex: 0
         }
     }
 
+    console.log("brazil geom: ", getGeometry('Brazil'))
+    console.log('dataset: ', dataset)
     let nations = [
         {
             name: 'United States of America',
             geometry: getGeometry('United States of America'),
             flag: US,
             team: 1,
+            color: '#21AE51',
+            fill: '#89E59D',
+            countries: [],
+            border: {},
             strategy: structuredClone(nationStrategies.blank),
             credits: 1000,
             items: structuredClone(items),
@@ -943,8 +1056,29 @@
             geometry: getGeometry('Brazil'),
             flag: BR,
             team: 2,
+            color: '#2151AE',
+            fill: '#89A8E6',
+            countries: [],
+            border: {},
             strategy: structuredClone(nationStrategies.defensive),
-            credits: 10,
+            credits: 200,
+            items: structuredClone(items),
+            cities: [],
+            citiesUsed: [],
+            tikibars: [],
+            jets: []
+        },
+        {
+            name: 'Russia',
+            geometry: getGeometry('Russia'),
+            flag: RU,
+            team: 2,
+            color: '#C62A31',
+            fill: '#F08D92',
+            countries: [],
+            border: {},
+            strategy: structuredClone(nationStrategies.defensive),
+            credits: 200,
             items: structuredClone(items),
             cities: [],
             citiesUsed: [],
@@ -952,7 +1086,27 @@
             jets: []
         }
     ]
+
+    // #50B5FF
+    // #F2B2F0
+    // #FEA6A6
     
+    // {
+    //         name: 'Russia',
+    //         geometry: getGeometry('Russia'),
+    //         flag: RU,
+    //         team: 2,
+    //         color: '#FEA6A6',
+    //         countries: [],
+    //         border: {},
+    //         strategy: structuredClone(nationStrategies.defensive),
+    //         credits: 70,
+    //         items: structuredClone(items),
+    //         cities: [],
+    //         citiesUsed: [],
+    //         tikibars: [],
+    //         jets: []
+    //     }
     
 
     console.log('dataset: ', dataset)
@@ -961,7 +1115,28 @@
         return country.geometry
     }
 
-    $: console.log(nations)
+    let jetPatrolUI = false;
+    function createPatrol(jet) {
+        jetPatrolUI = true;
+    }
+
+    function resumePatrol(jet) {
+        const closestPoint = jet.patrol.points.reduce(function (prev, curr) {
+            const prevDist = Math.hypot(prev[0] - jet.location[0], prev[1] - jet.location[1]);
+            const currDist = Math.hypot(curr[0] - jet.location[0], curr[1] - jet.location[1]);
+            return (currDist < prevDist) ? curr : prev;
+        });
+
+        jet.waypoints.points = [closestPoint]
+        const projectedWaypoints = jet.waypoints.points.map(point => projection(point))
+        projectedWaypoints.unshift(projection(jet.location))
+        jet.waypoints.path = d3.line()(projectedWaypoints)
+        jet.waypoints.moving = true;
+
+        const closestPointIndex = jet.patrol.points.indexOf(closestPoint)
+        jet.patrol.nextPoint = closestPointIndex;
+        jet.patrol.patrolling = true;
+    }
 </script>
 
 <svelte:window
@@ -972,6 +1147,12 @@
 	bind:innerHeight={clientY}
 />
 
+{#if jetPatrolUI}
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; border: 5px solid #FF7425;" />
+    <div style="position: absolute; top: 0; left: 0;  pointer-events: none; background: #FF7425; color: white; font-weight: 700; font-size: 20px; padding: 10px;">
+        Patrol
+    </div>
+{/if}
 
 {#if jetSelected}
     <div style="
@@ -979,22 +1160,123 @@
         left: {transform.apply(projection(jetSelected.location))[0] - 75}px;
         top: {transform.apply(projection(jetSelected.location))[1] - 60}px;
         display: flex;
-        gap: 8px;
+        gap: 4px;
+        padding: 4px;
+        background: #2E2E2E;
+        border-radius: 3px;
     ">
-        <div class="context-item" style="background: {jetSelected.guardMode  ? '#3087EC' : '#45444E'}" on:click|stopPropagation={() => {
-            jetSelected.guardMode = !jetSelected.guardMode
-            nations = nations
-            jetSelected = ''
+        <div class="context-item" style="background: #2E2E2E; padding-left: 3px; padding-right: 3px;" on:click|stopPropagation={() => {
+            jetSelected = null
         }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C7C7C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+        <div class="context-item" style="background: {jetSelected.guardMode  ? '#45444E' : '#1769C1'}" on:click|stopPropagation={() => {
+            activeHudItem = ''
+            jetSelected.guardMode = !jetSelected.guardMode;
+
+            if (jetSelected.guardMode) {
+                jetSelected.waypoints.points = []
+                jetSelected.waypoints.path = ''
+                jetSelected.waypoints.moving = false;
+                stopJet(jetSelected)
+            }
+
+            nations = nations
+        }}>
+            <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6 0.606934L0 2.85693V8.10693C0 12.6069 6 15.6069 6 15.6069C6 15.6069 6.00456 15.6047 6.01343 15.6001V0.611969Z" fill="#7CBBFF"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6.02685 0.606934L12.0239 2.85693V8.10693C12.0239 12.6069 6.02685 15.6069 6.02685 15.6069C6.02685 15.6069 6.02229 15.6047 6.01343 15.6001V0.611969Z" fill="#2B91FF"/>
+            </svg>
             {#if jetSelected.guardMode}
-                Guarding
+                Cancel
             {:else}
-                Guard Area
+                Guard
             {/if}
         </div>
-        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => console.log('cool')}>
-            Create Patrol
-        </div>
+        {#if jetSelected.waypoints.moving}
+            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+                jetSelected.waypoints.points = []
+                jetSelected.waypoints.path = ''
+                jetSelected.waypoints.moving = false;
+                stopJet(jetSelected)
+            }}>
+                    <svg
+                    width={14}
+                    height={14}
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <rect
+                        x="2.1213"
+                        width="10.6554"
+                        height="10.6554"
+                        transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
+                        fill="#1BA1FF"
+                        stroke="white"
+                        stroke-width="2.99998"
+                    />
+                </svg>
+                Cancel
+            </div>
+        {/if}
+        <!-- {#if !jetPatrolUI}
+            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+                activeHudItem = ''
+                if (jetSelected.patrol.patrolling && jetSelected.patrol.points.length) {
+                    jetSelected.patrol.patrolling = false;
+                    stopJet(jetSelected)
+                } else if (!jetSelected.patrol.patrolling && jetSelected.patrol.points.length > 1) {
+                    if (jetSelected.waypoints.moving) {
+                        jetSelected.waypoints.points = []
+                        jetSelected.waypoints.path = ''
+                        jetSelected.waypoints.moving = false;
+                        stopJet(jetSelected)
+                    }
+                    resumePatrol(jetSelected)
+                } else {
+                    createPatrol(jetSelected)
+                }
+            }}>
+                {#if jetSelected.patrol.patrolling && jetSelected.patrol.points.length}
+                    Pause Patrol
+                {:else if !jetSelected.patrol.patrolling && jetSelected.patrol.points.length > 1}
+                    Resume Patrol
+                {:else}
+                    Patrol
+                {/if}
+            </div>
+        {/if}
+        {#if jetPatrolUI}
+            {#if jetSelected.patrol.points.length > 1} 
+                <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {            
+                    jetPatrolUI = false;
+                    resumePatrol(jetSelected)
+                }}>
+                    Done
+                </div>
+            {/if}
+            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+                jetPatrolUI = false;
+                jetSelected.patrol.points = []
+                jetSelected.patrol.path = ''
+                jetSelected.patrol.endToStartPath = ''
+                jetSelected.patrol.patrolling = false;
+            }}>
+                Cancel
+            </div>
+        {/if}
+        {#if !jetPatrolUI && jetSelected.patrol.points.length > 1}
+            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+                jetSelected.patrol.patrolling = false;
+                jetSelected .patrol.points = []
+                jetSelected.patrol.path = ''
+                jetSelected.patrol.endToStartPath = ''
+                stopJet(jetSelected)
+            }}>
+                Cancel Patrol
+            </div>
+        {/if} -->
     </div>
 {/if}
 
@@ -1069,7 +1351,7 @@
 
 <div style="display: flex; position: absolute;">    
 {#each nations as nation, i}
-    {#if i === 0 || debugMenu}
+    {#if !jetPatrolUI && (i === 0 || debugMenu)}
         <div class="top-hud">  
             <div style="font-weight: 700; color: black; text-shadow: rgb(255, 255, 255) 1px 0px 0px, rgb(255, 255, 255) 0.540302px 0.841471px 0px, rgb(255, 255, 255) -0.416147px 0.909297px 0px, rgb(255, 255, 255) -0.989992px 0.14112px 0px, rgb(255, 255, 255) -0.653644px -0.756802px 0px, rgb(255, 255, 255) 0.283662px -0.958924px 0px, rgb(255, 255, 255) 0.96017px -0.279415px 0px;">
                 {nation.name}
@@ -1141,7 +1423,7 @@
 			/>
 		{/each}
 
-		{#if viewboxTopLeft[0] < mapRealLeftEdge}
+		<!-- {#if viewboxTopLeft[0] < mapRealLeftEdge} -->
 			<g transform="translate({-mapRealWidth}, 0)">
 				{#each dataset as data, i}
 					<path
@@ -1160,8 +1442,8 @@
 					/>
 				{/each}
 			</g>
-		{/if}
-		{#if viewboxBottomRight[0] > mapRealRightEdge}
+		<!-- {/if} -->
+		<!-- {#if viewboxBottomRight[0] > mapRealRightEdge} -->
 			<g transform="translate({mapRealWidth}, 0)">
 				{#each dataset as data, i}
 					<path
@@ -1180,7 +1462,7 @@
 					/>
 				{/each}
 			</g>
-		{/if}
+		<!-- {/if} -->
 		<!-- {#if transform.k > zoomLevels[7].k} 
             {#each urbanAreas.features as data}
                 <path d={path(data)} fill="#FCFBF3" stroke="none" class="country" />
@@ -1536,8 +1818,12 @@
 
         <!-- {/each} --> 
 
+        {#each nations as nation}
+            <NationTerritory {nation} {transform} {path} {mapRealWidth} />
+        {/each}
+
         {#each nations as nation, i}
-            <Nation isPlayer={i === 0} bind:jetSelected bind:this={nation.component} bind:nation bind:nations bind:movingJets {mapTiler} {projection} {transform} {cityNamesDataset} />
+            <Nation isPlayer={i === 0} bind:jetSelected bind:this={nation.component} bind:nation bind:nations bind:movingJets {mapTiler} {projection} {transform} {cityNamesDataset} {jetPatrolUI} bind:activeHudItem {path} />
         {/each}
 
         <!-- {#each nations[0].jets as jet}                    
@@ -1571,7 +1857,7 @@
                 class="jet-helper"
             />
         {/each} -->
-		{#each stateNamesDataset as data}
+		<!-- {#each stateNamesDataset as data}
 			{#if data.properties.visible}
 				<text
 					x={projection(data.properties.center)[0]}
@@ -1583,7 +1869,7 @@
 					class="country-name">{data.properties.postal}</text
 				>
 			{/if}
-		{/each}
+		{/each} -->
 		{#each countryNamesDataset as data (data.properties.NE_ID)}
 			{#if data.properties.visible || data.properties.NAME_EN === selected?.properties.NAME_EN}
 				<text
@@ -1649,7 +1935,7 @@
         gap: 4px;
         color: white;
         border-radius: 3px; 
-        padding: 3px 12px 3px 12px;
+        padding: 3px 9px 3px 9px;
     } 
 
     .hud-item {
