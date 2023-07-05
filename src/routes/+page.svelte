@@ -31,6 +31,7 @@
     import BR from '$lib/components/flags/BR.svelte'
     import US from '$lib/components/flags/US.svelte'
     import RU from '$lib/components/flags/RU.svelte'
+    import EG from '$lib/components/flags/EG.svelte'
 
 
 	let airports = importAirports;
@@ -786,7 +787,9 @@
         //     object.move()
         // })  
 
-
+        movingSettlers.forEach(settler => {
+            moveSettler(settler)
+        })
 
         movingJets.forEach(jet => {
             moveJet(jet)
@@ -794,6 +797,40 @@
 
 		requestAnimationFrame(loop);
 	}
+
+    function stopSettler(settler) {
+        movingSettlers.splice(movingSettlers.indexOf(settler), 1)
+        settler.startLocation = []
+        settler.target = []
+        settler.targetDistance = 0
+        movingSettlers = movingSettlers
+    }
+
+    function moveSettler(settler) {
+        console.log(settler.waypoints.moving)
+        settler.targetDistance = settler.targetDistance + 0.005/settler.pointDistance
+        settler.location = interpolate(settler.startLocation, settler.target, settler.targetDistance)        
+
+        if (settler.waypoints.moving) {
+            const projectedPoints = settler.waypoints.points.map(point => projection(point))
+            projectedPoints.unshift(projection(settler.location))
+            settler.waypoints.path = d3.line()(projectedPoints)
+        }
+
+        if (Math.sqrt(Math.pow(settler.target[0] - settler.location[0], 2) + Math.pow(settler.target[1] - settler.location[1], 2)) < 0.1) {
+            if (settler.waypoints.moving) {
+                if (settler.waypoints.points.length) {
+                    settler.waypoints.points.splice(0, 1)
+                    if (!settler.waypoints.points.length) {
+                        settler.waypoints.moving = false
+                        settler.waypoints.path = ''
+                    }
+                }
+            }
+            stopSettler(settler)
+        }
+        nations = nations    
+    }
 
     function stopJet(jet) {
         movingJets.splice(movingJets.indexOf(jet), 1)
@@ -804,11 +841,20 @@
     }
     
     function moveJet(jet) {
-        jet.targetDistance = jet.targetDistance + 0.005/jet.pointDistance
-        jet.location = interpolate(jet.startLocation, jet.target, jet.targetDistance)
+        console.log(jet.target)
+        if (jet.guard.guarding && jet.guard.circling) {
+            const x = jet.guard.center[0] + jet.guard.radius * Math.cos(jet.guard.angle);
+            const y = jet.guard.center[1] + jet.guard.radius * Math.sin(jet.guard.angle);
+            const jetPosition = [x, y];
+            jet.location = jetPosition
+            jet.target = jetPosition
+            jet.rotation = 45 - (jet.guard.angle * 180 / Math.PI) + 180
+        } else {
+            jet.targetDistance = jet.targetDistance + 0.005/jet.pointDistance
+            jet.location = interpolate(jet.startLocation, jet.target, jet.targetDistance)
+            jet.rotation = turf.bearing(jet.location, jet.target) + 45
+        }
 
-        jet.rotation = turf.bearing(jet.location, jet.target) + 45
-        
         if (jet.waypoints.moving) {
             const projectedPoints = jet.waypoints.points.map(point => projection(point))
             projectedPoints.unshift(projection(jet.location))
@@ -819,6 +865,12 @@
             if (jet.patrol.patrolling) {
                 jet.patrol.nextPoint++
             } 
+            if (jet.guard.guarding) {
+                jet.guard.angle -= 0.01
+                if (jet.guard.angle <= -2 * Math.PI) {
+                    jet.guard.angle = 0; // Reset angle once a full circle is completed
+                }
+            }
             if (jet.waypoints.moving) {
                 if (jet.waypoints.points.length) {
                     jet.waypoints.points.splice(0, 1)
@@ -828,7 +880,10 @@
                     }
                 }
             }
-            stopJet(jet)
+
+            if (!jet.guard.guarding) {
+                stopJet(jet)
+            }
         }
         nations = nations    
     }
@@ -857,6 +912,7 @@
     let tikibarCost = 10;
     let playerTikiBars = []
     let id = 0;
+    let settlerSelected
     let jetSelected
     const citiesUsed = []
 
@@ -918,56 +974,55 @@
 	// });
 
 
+    let movingSettlers = []
     let movingJets = []
+    let moveUI = false
 
     function handleClick(e) {
-        if (jetPatrolUI) {
-            jetSelected.patrol.points = [...jetSelected.patrol.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
-            const projectedPoints = jetSelected.patrol.points.map(point => projection(point))
-            jetSelected.patrol.path = d3.line()(projectedPoints)
-            jetSelected.patrol.endToStartPath = d3.line()([projectedPoints[projectedPoints.length - 1], projectedPoints[0]])
+        // if (jetPatrolUI) {
+        //     jetSelected.patrol.points = [...jetSelected.patrol.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
+        //     const projectedPoints = jetSelected.patrol.points.map(point => projection(point))
+        //     jetSelected.patrol.path = d3.line()(projectedPoints)
+        //     jetSelected.patrol.endToStartPath = d3.line()([projectedPoints[projectedPoints.length - 1], projectedPoints[0]])
+        //     return
+        // }
+        if (settlerSelected && moveUI) {
+            moveUI = false;
+            settlerSelected.waypoints.points = [...settlerSelected.waypoints.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
+            const projectedPoints = settlerSelected.waypoints.points.map(point => projection(point))
+            projectedPoints.unshift(projection(settlerSelected.location))
+            settlerSelected.waypoints.path = d3.line()(projectedPoints)
+            settlerSelected.waypoints.moving = true;
             return
         }
 
-        if (jetSelected) {
+        if (jetSelected && moveUI) {
+            moveUI = false;
             jetSelected.waypoints.points = [...jetSelected.waypoints.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
             const projectedPoints = jetSelected.waypoints.points.map(point => projection(point))
             projectedPoints.unshift(projection(jetSelected.location))
             jetSelected.waypoints.path = d3.line()(projectedPoints)
             jetSelected.waypoints.moving = true;
 
-            jetSelected.guardMode = false;
+            if (jetSelected.guard.guarding) {
+                jetSelected.guard.guarding = false;
+                stopJet(jetSelected)
+                jetSelected.location = jetSelected.guard.center
+            }
+            
             jetSelected.patrol.patrolling = false;
-            // jetSelected = ''
-            // jetSelected.startLocation = jetSelected.location
-            // jetSelected.target = projection.invert(transform.invert(d3.pointer(e, svg)))
-            // jetSelected.pointDistance = Math.sqrt(Math.pow(jetSelected.target[0] - jetSelected.location[0], 2) + Math.pow(jetSelected.target[1] - jetSelected.location[1], 2))
-            // jetSelected.targetDistance = 0;
-            // if (movingJets.indexOf(jetSelected) === -1) {
-            //     movingJets.push(jetSelected)
-            // }
-            // jetSelected = ''
             return
         }
 
         if (activeHudItem.name === 'Tiki Bar' && nations[0].credits >= nations[0].items.tikibar.cost) {
             nations[0].credits -= nations[0].items.tikibar.cost
             nations[0].items.tikibar.cost += nations[0].items.tikibar.costIncrease
-
-            // activeHudItem = ''
-
             playerTikiBars = [...playerTikiBars, {
                 properties: {
                     owner: 'Player',
                     location: projection.invert(transform.invert(d3.pointer(e, svg))),
                 }
             }]
-
-            return
-        }
-
-        if (activeHudItem.name === 'Jet') {
-            nations[0].component.buildJet(projection.invert(transform.invert(d3.pointer(e, svg))))
             return
         }
 
@@ -978,6 +1033,21 @@
                 return
             }
         }
+
+        if (activeHudItem.name === 'Settler') {
+            nations[0].component.buildSettler(projection.invert(transform.invert(d3.pointer(e, svg))))
+            return
+        }
+
+        if (activeHudItem.name === 'Jet') {
+            nations[0].component.buildJet(projection.invert(transform.invert(d3.pointer(e, svg))))
+            return
+        }
+
+        // else
+        jetSelected = null
+        settlerSelected = null
+        activeHudItem = ''
     }
 
     let debugMenu = false;
@@ -995,6 +1065,7 @@
     
     function toggleItem(item) {
         jetSelected = null
+        settlerSelected = null
         if (activeHudItem === item) {
             activeHudItem = ''
         } else {
@@ -1008,6 +1079,11 @@
                 cost: 10,
                 costIncrease: 10
             },
+            settler: {
+                name: "Settler",
+                cost: 10,
+                costIncrease: 10
+            },
             tikibar: {
                 name: 'Tiki Bar',
                 cost: 500,
@@ -1015,8 +1091,8 @@
             },
             jet: {
                 name: 'Jet',
-                cost: 10,
-                costIncrease: 10
+                cost: 100,
+                costIncrease: 1
             }
         }
 
@@ -1047,6 +1123,7 @@
             credits: 1000,
             items: structuredClone(items),
             cities: [],
+            settlers: [],
             citiesUsed: [],
             tikibars: [],
             jets: []
@@ -1061,9 +1138,10 @@
             countries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
-            credits: 200,
+            credits: 20,
             items: structuredClone(items),
             cities: [],
+            settlers: [],
             citiesUsed: [],
             tikibars: [],
             jets: []
@@ -1078,9 +1156,46 @@
             countries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
-            credits: 200,
+            credits: 20,
             items: structuredClone(items),
             cities: [],
+            settlers: [],
+            citiesUsed: [],
+            tikibars: [],
+            jets: []
+        },
+        {
+            name: 'Egypt',
+            geometry: getGeometry('Egypt'),
+            flag: EG,
+            team: 2,
+            color: '#AE7E21',
+            fill: '#E5C089',
+            countries: [],
+            border: {},
+            strategy: structuredClone(nationStrategies.defensive),
+            credits: 20,
+            items: structuredClone(items),
+            cities: [],
+            settlers: [],
+            citiesUsed: [],
+            tikibars: [],
+            jets: []
+        },
+        {
+            name: 'United Kingdom',
+            geometry: getGeometry('United Kingdom'),
+            flag: EG,
+            team: 2,
+            color: '#2184AE',
+            fill: '#89CAE5',
+            countries: [],
+            border: {},
+            strategy: structuredClone(nationStrategies.defensive),
+            credits: 20,
+            items: structuredClone(items),
+            cities: [],
+            settlers: [],
             citiesUsed: [],
             tikibars: [],
             jets: []
@@ -1137,6 +1252,13 @@
         jet.patrol.nextPoint = closestPointIndex;
         jet.patrol.patrolling = true;
     }
+
+    function jetGuard(jet) {
+        jet.guard.guarding = true;
+        // jet.guard.points = turf.circle(jet.location, 200, { steps: 128 }).geometry.coordinates[0]
+        jet.guard.center = structuredClone(jet.location)
+        // jet.location = jet.guard.points[0]
+    }
 </script>
 
 <svelte:window
@@ -1147,14 +1269,97 @@
 	bind:innerHeight={clientY}
 />
 
-{#if jetPatrolUI}
+<!-- {#if jetPatrolUI}
     <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; border: 5px solid #FF7425;" />
     <div style="position: absolute; top: 0; left: 0;  pointer-events: none; background: #FF7425; color: white; font-weight: 700; font-size: 20px; padding: 10px;">
         Patrol
     </div>
+{/if} -->
+
+<!-- {#if moveUI}
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; border: 5px solid #1BA1FF;" />
+    <div style="position: absolute; top: 0; left: 0;  pointer-events: none; background: #1BA1FF; color: white; font-weight: 700; font-size: 20px; padding: 10px;">
+        Move
+    </div>
+{/if} -->
+
+{#if settlerSelected && !moveUI}
+    <div style="
+        position: absolute;
+        left: {transform.apply(projection(settlerSelected.location))[0] - 75}px;
+        top: {transform.apply(projection(settlerSelected.location))[1] - 60}px;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: #2E2E2E;
+        border-radius: 3px;
+    ">
+    {#if !settlerSelected.waypoints.moving}
+        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+            if (!settlerSelected.waypoints.moving) {
+                nations[0].component.buildCity(settlerSelected.location)
+                nations[0].settlers.splice(nations[0].settlers.indexOf(settlerSelected), 1)
+                settlerSelected = null
+            }
+        }}>
+                <svg
+                width={14}
+                height={14}
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <rect
+                    x="2.1213"
+                    width="10.6554"
+                    height="10.6554"
+                    transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
+                    fill="#1BA1FF"
+                    stroke="white"
+                    stroke-width="2.99998"
+                />
+            </svg>
+            Found City
+        </div>
+        {/if}
+        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+            if (settlerSelected.waypoints.moving) {
+                moveUI = false
+                settlerSelected.waypoints.points = []
+                settlerSelected.waypoints.path = ''
+                settlerSelected.waypoints.moving = false;
+                stopSettler(settlerSelected)
+            } else {
+                moveUI = true
+            }
+        }}>
+                <svg
+                width={14}
+                height={14}
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <rect
+                    x="2.1213"
+                    width="10.6554"
+                    height="10.6554"
+                    transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
+                    fill="#1BA1FF"
+                    stroke="white"
+                    stroke-width="2.99998"
+                />
+            </svg>
+            {#if settlerSelected.waypoints.moving}
+                Cancel
+            {:else}
+                Move
+            {/if}
+        </div>
+    </div>
 {/if}
 
-{#if jetSelected}
+{#if jetSelected && !moveUI}
     <div style="
         position: absolute;
         left: {transform.apply(projection(jetSelected.location))[0] - 75}px;
@@ -1165,118 +1370,70 @@
         background: #2E2E2E;
         border-radius: 3px;
     ">
-        <div class="context-item" style="background: #2E2E2E; padding-left: 3px; padding-right: 3px;" on:click|stopPropagation={() => {
-            jetSelected = null
-        }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C7C7C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </div>
-        <div class="context-item" style="background: {jetSelected.guardMode  ? '#45444E' : '#1769C1'}" on:click|stopPropagation={() => {
-            activeHudItem = ''
-            jetSelected.guardMode = !jetSelected.guardMode;
-
-            if (jetSelected.guardMode) {
-                jetSelected.waypoints.points = []
-                jetSelected.waypoints.path = ''
-                jetSelected.waypoints.moving = false;
-                stopJet(jetSelected)
-            }
-
-            nations = nations
-        }}>
-            <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6 0.606934L0 2.85693V8.10693C0 12.6069 6 15.6069 6 15.6069C6 15.6069 6.00456 15.6047 6.01343 15.6001V0.611969Z" fill="#7CBBFF"/>
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6.02685 0.606934L12.0239 2.85693V8.10693C12.0239 12.6069 6.02685 15.6069 6.02685 15.6069C6.02685 15.6069 6.02229 15.6047 6.01343 15.6001V0.611969Z" fill="#2B91FF"/>
-            </svg>
-            {#if jetSelected.guardMode}
-                Cancel
-            {:else}
-                Guard
-            {/if}
-        </div>
-        {#if jetSelected.waypoints.moving}
-            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
-                jetSelected.waypoints.points = []
-                jetSelected.waypoints.path = ''
-                jetSelected.waypoints.moving = false;
-                stopJet(jetSelected)
-            }}>
-                    <svg
-                    width={14}
-                    height={14}
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <rect
-                        x="2.1213"
-                        width="10.6554"
-                        height="10.6554"
-                        transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
-                        fill="#1BA1FF"
-                        stroke="white"
-                        stroke-width="2.99998"
-                    />
-                </svg>
-                Cancel
-            </div>
-        {/if}
-        <!-- {#if !jetPatrolUI}
-            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+        {#if !jetSelected.waypoints.moving}
+            <div class="context-item" style="background: {jetSelected.guard.guarding  ? '#45444E' : '#1769C1'}" on:click|stopPropagation={() => {
                 activeHudItem = ''
-                if (jetSelected.patrol.patrolling && jetSelected.patrol.points.length) {
-                    jetSelected.patrol.patrolling = false;
+
+                if (jetSelected.guard.guarding) {
+                    jetSelected.guard.guarding = false;
                     stopJet(jetSelected)
-                } else if (!jetSelected.patrol.patrolling && jetSelected.patrol.points.length > 1) {
-                    if (jetSelected.waypoints.moving) {
-                        jetSelected.waypoints.points = []
-                        jetSelected.waypoints.path = ''
-                        jetSelected.waypoints.moving = false;
-                        stopJet(jetSelected)
-                    }
-                    resumePatrol(jetSelected)
+                    jetSelected.location = jetSelected.guard.center
                 } else {
-                    createPatrol(jetSelected)
+                    jetGuard(jetSelected)
+                    // jetSelected.guard.guarding = true;
+                    jetSelected.waypoints.points = []
+                    jetSelected.waypoints.path = ''
+                    jetSelected.waypoints.moving = false;
+                    stopJet(jetSelected)
                 }
+
+                nations = nations
             }}>
-                {#if jetSelected.patrol.patrolling && jetSelected.patrol.points.length}
-                    Pause Patrol
-                {:else if !jetSelected.patrol.patrolling && jetSelected.patrol.points.length > 1}
-                    Resume Patrol
+                <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6 0.606934L0 2.85693V8.10693C0 12.6069 6 15.6069 6 15.6069C6 15.6069 6.00456 15.6047 6.01343 15.6001V0.611969Z" fill="#7CBBFF"/>
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6.02685 0.606934L12.0239 2.85693V8.10693C12.0239 12.6069 6.02685 15.6069 6.02685 15.6069C6.02685 15.6069 6.02229 15.6047 6.01343 15.6001V0.611969Z" fill="#2B91FF"/>
+                </svg>
+                {#if jetSelected.guard.guarding}
+                    Cancel
                 {:else}
-                    Patrol
+                    Guard
                 {/if}
             </div>
         {/if}
-        {#if jetPatrolUI}
-            {#if jetSelected.patrol.points.length > 1} 
-                <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {            
-                    jetPatrolUI = false;
-                    resumePatrol(jetSelected)
-                }}>
-                    Done
-                </div>
-            {/if}
-            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
-                jetPatrolUI = false;
-                jetSelected.patrol.points = []
-                jetSelected.patrol.path = ''
-                jetSelected.patrol.endToStartPath = ''
-                jetSelected.patrol.patrolling = false;
-            }}>
-                Cancel
-            </div>
-        {/if}
-        {#if !jetPatrolUI && jetSelected.patrol.points.length > 1}
-            <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
-                jetSelected.patrol.patrolling = false;
-                jetSelected .patrol.points = []
-                jetSelected.patrol.path = ''
-                jetSelected.patrol.endToStartPath = ''
+        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
+            if (jetSelected.waypoints.moving) {
+                moveUI = false
+                jetSelected.waypoints.points = []
+                jetSelected.waypoints.path = ''
+                jetSelected.waypoints.moving = false;
                 stopJet(jetSelected)
-            }}>
-                Cancel Patrol
-            </div>
-        {/if} -->
+            } else {
+                moveUI = true
+            }
+        }}>
+                <svg
+                width={14}
+                height={14}
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <rect
+                    x="2.1213"
+                    width="10.6554"
+                    height="10.6554"
+                    transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
+                    fill="#1BA1FF"
+                    stroke="white"
+                    stroke-width="2.99998"
+                />
+            </svg>
+            {#if jetSelected.waypoints.moving}
+                Cancel
+            {:else}
+                Move
+            {/if}
+        </div>
     </div>
 {/if}
 
@@ -1329,7 +1486,7 @@
         Zoom {transform.k.toFixed(1)} | frameCount {frameCount} | fps {fps}
     </div>
 
-    {#key hovered}
+    <!-- {#key hovered}
         <div
             style="left: {hovered?.properties.ship != null
                 ? ships[hovered?.properties?.ship][0] - transform.x
@@ -1342,16 +1499,16 @@
                 <img alt="United States" src="./src/lib/flags/real/{hovered?.properties.WB_A2}.svg" />{hovered
                     ?.properties.NAME_EN ?? ''}
             </div>
-            <!-- <div>
+            <-- <div>
             Population: {hovered?.properties.POP_EST?.toLocaleString() ?? ''}
-        </div> -->
+        </div> ->
         </div>
-    {/key}
+    {/key} -->
 {/if}
 
 <div style="display: flex; position: absolute;">    
 {#each nations as nation, i}
-    {#if !jetPatrolUI && (i === 0 || debugMenu)}
+    {#if i === 0 || debugMenu}
         <div class="top-hud">  
             <div style="font-weight: 700; color: black; text-shadow: rgb(255, 255, 255) 1px 0px 0px, rgb(255, 255, 255) 0.540302px 0.841471px 0px, rgb(255, 255, 255) -0.416147px 0.909297px 0px, rgb(255, 255, 255) -0.989992px 0.14112px 0px, rgb(255, 255, 255) -0.653644px -0.756802px 0px, rgb(255, 255, 255) 0.283662px -0.958924px 0px, rgb(255, 255, 255) 0.96017px -0.279415px 0px;">
                 {nation.name}
@@ -1819,11 +1976,11 @@
         <!-- {/each} --> 
 
         {#each nations as nation}
-            <NationTerritory {nation} {transform} {path} {mapRealWidth} />
+            <NationTerritory {nation} {transform} {path} {mapRealWidth} bind:hovered />
         {/each}
 
         {#each nations as nation, i}
-            <Nation isPlayer={i === 0} bind:jetSelected bind:this={nation.component} bind:nation bind:nations bind:movingJets {mapTiler} {projection} {transform} {cityNamesDataset} {jetPatrolUI} bind:activeHudItem {path} />
+            <Nation isPlayer={i === 0} bind:settlerSelected bind:jetSelected bind:this={nation.component} bind:nation bind:nations bind:movingJets bind:movingSettlers {mapTiler} {projection} {transform} {cityNamesDataset} {jetPatrolUI} bind:activeHudItem {path} />
         {/each}
 
         <!-- {#each nations[0].jets as jet}                    
