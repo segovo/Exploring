@@ -1,49 +1,50 @@
 <script>
 	import * as d3 from 'd3';
 	import * as turf from '@turf/turf';
+    import { onDestroy } from 'svelte';
 
 	export let isPlayer;
-	export let settlerSelected;
-	export let jetSelected;
-
+    export let itemSelected;
 	export let nation;
 	export let nations;
 	export let mapTiler;
 	export let projection;
 	export let transform;
-	export let movingJets;
-	export let movingSettlers;
+	export let movingEntities;
 	export let cityNamesDataset;
 	export let jetPatrolUI;
 	export let activeHudItem;
 	export let path;
+    export let destroyNation;
 
+    export let jetController;
+
+    let enemyJets;
 	let enemyJetsQuadtree;
-	let enemyJets;
+    let enemyCities;
+    let enemyCitiesQuadtree;
 
 	export function tick(currentTick) {
 		if (currentTick % 20 === 0) {
 			let otherNations = nations.filter((otherNation) => otherNation.team !== nation.team);
 			enemyJets = otherNations.map((otherNation) => otherNation.jets);
 			enemyJets = enemyJets.flat();
+            enemyCities = otherNations.map((otherNation) => otherNation.cities);
+			enemyCities = enemyCities.flat();
 			enemyJetsQuadtree = d3
 				.quadtree()
 				.x((jet) => jet.location[0])
 				.y((jet) => jet.location[1])
 				.addAll(enemyJets);
+            enemyCitiesQuadtree = d3
+				.quadtree()
+				.x((city) => city.location[0])
+				.y((city) => city.location[1])
+				.addAll(enemyCities);
 
 			if (!isPlayer) {
 				buildStuff();
 			}
-
-			// if (!isPlayer) {
-			//     enemyJets.forEach(jet => {
-			//         const isInside = turf.booleanPointInPolygon(jet.location, nation.border)
-			//         if (isInside) {
-			//             jetAttack(jet)
-			//         }
-			//     })
-			// }
 		}
 
 		if (currentTick % 1 === 0) {
@@ -51,8 +52,14 @@
 			nation.settlers.forEach((settler) => moveSettler(settler));
 		}
 
+        if (!isPlayer) {
+            nation.settlers.forEach((settler) => tickSettler(settler));
+        }
+
 		nation.jets.forEach((jet) => tickJet(jet));
 		nation.cities.forEach((city) => tickCity(city));
+
+        tickNation()
 	}
 
 	function buildStuff() {
@@ -64,11 +71,14 @@
 			buildCity();
 		} else if (nextPurchase === 'jet') {
 			buildJet();
-		}
+		} else if (nextPurchase === 'settler') {
+            buildSettler();
+        }
 	}
 
 	export function buildCity(center) {
 		if (nation.credits >= nation.items.city.cost) {
+            nation.capitalFounded = true;
 			// if (Object.keys(nation.border).length > 0) {
 			//     const isInside = turf.booleanPointInPolygon(center, nation.border)
 			//     if (!isInside) {
@@ -98,6 +108,9 @@
 			nation.cities = [
 				...nation.cities,
 				{
+                    type: 'city',
+                    location: center,
+                    health: 800,
 					name: newCity.properties.name,
 					nameLength: newCity.properties.name.length,
 					population: 1,
@@ -105,7 +118,6 @@
 					ticksPerCredit: 100,
 					ticksPerGrowth: 1200,
 					growthRate: Math.floor(Math.random() * 10) / 10 + 1, // 1.0-2.0
-					center: center,
 					visible: true
 				}
 			];
@@ -116,6 +128,8 @@
 
 	export function buildSettler(location) {
 		if (nation.credits >= nation.items.settler.cost) {
+            if (!location) location = randomPointNearCity();
+
 			if (Object.keys(nation.border).length > 0) {
 				const isInside = turf.booleanPointInPolygon(location, nation.border);
 				if (!isInside) {
@@ -131,6 +145,7 @@
 			nation.settlers = [
 				...nation.settlers,
 				{
+                    type: 'settler',
 					location: location,
 					health: 100,
 					waypoints: {
@@ -166,9 +181,11 @@
 			nation.jets = [
 				...nation.jets,
 				{
+                    type: 'jet',
 					location: location,
 					rotation: 45,
 					health: 100,
+                    canAttackCities: false,
 					guard: {
 						guarding: false,
 						circling: false,
@@ -207,7 +224,7 @@
 			// const randomDistance = Math.max(Math.random() * radius, 100)
 			const randomDistance = 300;
 			const randomBearing = Math.random() * 360;
-			const destination = turf.destination(city.center, randomDistance, randomBearing, {
+			const destination = turf.destination(city.location, randomDistance, randomBearing, {
 				units: 'kilometers'
 			});
 			const randomPosition = destination.geometry.coordinates;
@@ -243,10 +260,38 @@
 		return coordinates[Math.floor(Math.random() * coordinates.length)];
 	}
 
+    function tickSettler(settler) {
+        // if (settler.waypoints.points.length === 0 && enemyCities.length) {
+        //     const closestEnemyCity = enemyCities.reduce((prev, curr) => {
+        //         const prevDist = Math.hypot(prev.location[0] - settler.location[0], prev.location[1] - settler.location[1]);
+        //         const currDist = Math.hypot(curr.location[0] - settler.location[0], curr.location[1] - settler.location[1]);
+        //         return currDist < prevDist ? curr : prev;
+        //     });
+
+            
+        // }
+    }
+
 	function tickJet(jet) {
 		if (jet.health <= 0) {
 			nation.jets.splice(nation.jets.indexOf(jet), 1);
+            return
 		}
+
+        if (!isPlayer) {
+            // if (nation.jets.length === nation.strategy.jetsPerAttack) {
+                if (jet.waypoints.points.length === 0 && enemyCities.length) {
+                    const closestEnemyCity = enemyCities.reduce((prev, curr) => {
+                        const prevDist = Math.hypot(prev.location[0] - jet.location[0], prev.location[1] - jet.location[1]);
+                        const currDist = Math.hypot(curr.location[0] - jet.location[0], curr.location[1] - jet.location[1]);
+                        return currDist < prevDist ? curr : prev;
+                    });
+
+                    jet.canAttackCities = true;
+                    jetController.addWaypoint(jet, closestEnemyCity.location);
+                }
+            // }
+        }
 	}
 
 	// function jetAttack(attacker) {
@@ -269,7 +314,7 @@
 		}
 
 		if (target) {
-			if (!movingSettlers.includes(settler)) {
+			if (!movingEntities.includes(settler)) {
 				settler.startLocation = settler.location;
 				settler.target = target;
 				settler.pointDistance = Math.sqrt(
@@ -277,9 +322,9 @@
 						Math.pow(settler.target[1] - settler.location[1], 2)
 				);
 				settler.targetDistance = 0;
-				movingSettlers.push(settler);
+				movingEntities.push(settler);
 			} else {
-				let movingSettler = movingSettlers[movingSettlers.indexOf(settler)];
+				let movingSettler = movingEntities[movingEntities.indexOf(settler)];
 				movingSettler.startLocation = movingSettler.location;
 				movingSettler.target = target;
 				movingSettler.pointDistance = Math.sqrt(
@@ -294,16 +339,23 @@
 	function searchForTargets(jet, target) {
 		let neighbor;
 
+        if (jet.canAttackCities && enemyCitiesQuadtree) {
+			neighbor = enemyCitiesQuadtree.find(jet.location[0], jet.location[1], 3.8);
+		}
+
 		if (enemyJetsQuadtree) {
-			neighbor = enemyJetsQuadtree.find(jet.location[0], jet.location[1], 3.8);
+			let enemyJet = enemyJetsQuadtree.find(jet.location[0], jet.location[1], 3.8);
+            if (enemyJet) {
+                neighbor = enemyJet;
+            }
 		}
 
 		if (neighbor) {
-			if (jet.guard.guarding || !isPlayer) {
-				jet.guard.circling = false;
-				target = neighbor.location;
-				neighbor.health -= Math.random() * 5;
-			}
+			// if ((jet.guard.guarding || !isPlayer) || (jet.canAttack)) {
+            jet.guard.circling = false;
+            target = neighbor.location;
+            neighbor.health -= Math.random() * 5;
+			// }
 		} else if (jet.patrol.patrolling) {
 			target = jet.patrol.points[jet.patrol.nextPoint % jet.patrol.points.length];
 		} else if (jet.waypoints.moving) {
@@ -338,7 +390,7 @@
 
 		if (!isPlayer || jet.guard.guarding || jet.patrol.patrolling || jet.waypoints.moving) {
 			if (target) {
-				if (!movingJets.includes(jet)) {
+				if (!movingEntities.includes(jet)) {
 					jet.startLocation = jet.location;
 					jet.target = target;
 					jet.pointDistance = Math.sqrt(
@@ -346,9 +398,9 @@
 							Math.pow(jet.target[1] - jet.location[1], 2)
 					);
 					jet.targetDistance = 0;
-					movingJets.push(jet);
+					movingEntities.push(jet);
 				} else {
-					let movingJet = movingJets[movingJets.indexOf(jet)];
+					let movingJet = movingEntities[movingEntities.indexOf(jet)];
 					movingJet.startLocation = movingJet.location;
 					movingJet.target = target;
 					movingJet.pointDistance = Math.sqrt(
@@ -357,7 +409,7 @@
 					);
 					movingJet.targetDistance = 0;
 				}
-			} else if (!movingJets[movingJets.indexOf(jet)]) {
+			} else if (!movingEntities[movingEntities.indexOf(jet)]) {
 				// console.log(randomPointOnBorder());
 				// const randomTarget = randomPointOnBorder();
 				// searchForTargets(jet, randomTarget);
@@ -367,6 +419,10 @@
 
 	function tickCity(city) {
 		city.ticks++;
+
+        if (city.health <= 0) {
+			nation.cities.splice(nation.cities.indexOf(city), 1);
+		}
 
 		if (city.ticks % city.ticksPerCredit === 0) {
 			nation.credits += city.population;
@@ -378,6 +434,11 @@
 		}
 	}
 
+    function tickNation() {
+        if (nation.cities.length === 0 && nation.capitalFounded) {
+            destroyNation(nation)
+        }
+    }
 	// tick.nations.forEach(nation => nation.tick())
 
 	/*
@@ -413,43 +474,95 @@
 </script>
 
 {#each nation.cities as city}
-	{#if transform.k > 8}
-		<text
-			x={mapTiler(projection(city.center))[0] - city.nameLength / transform.k}
-			y={mapTiler(projection(city.center))[1] - 12 / transform.k}
-			font-size={10 / transform.k}
-			stroke-width={1 / transform.k}
-			class="city-name">{city.name}</text
-		>
-		<circle
-			cx={mapTiler(projection(city.center))[0]}
-			cy={mapTiler(projection(city.center))[1]}
-			r={1.5 / transform.k}
-			fill="white"
-			stroke="black"
-			stroke-width={0.75 / transform.k}
-		/>
-	{/if}
-	<circle
-		cx={mapTiler(projection(city.center))[0] +
-			(transform.k > 8 ? -(12 + city.nameLength) / transform.k : 0)}
-		cy={mapTiler(projection(city.center))[1] + (transform.k > 8 ? -16 / transform.k : 0)}
-		r={8 / transform.k}
-		fill={nation.color}
-		stroke="none"
-	/>
-	<!-- "#3087EC" -->
-	<text
-		x={mapTiler(projection(city.center))[0] +
-			(transform.k > 8 ? -(12 + city.nameLength) / transform.k : 0)}
-		y={mapTiler(projection(city.center))[1] +
-			(transform.k > 8 ? -12 / transform.k : 3 / transform.k)}
-		font-size={10 / transform.k}
-		stroke-width={1 / transform.k}
-		class="city-pop">{Math.round(city.population)}</text
-	>
+    {#if transform.k > 8}
+        <text
+            x={mapTiler(projection(city.location))[0] - city.nameLength / transform.k}
+            y={mapTiler(projection(city.location))[1] - 18 / transform.k}
+            font-size={10 / transform.k}
+            stroke-width={1 / transform.k}
+            class="city-name">{city.name}</text
+        >
+        <circle
+            cx={mapTiler(projection(city.location))[0]}
+            cy={mapTiler(projection(city.location))[1]}
+            r={1.5 / transform.k}
+            fill="white"
+            stroke="black"
+            stroke-width={0.75 / transform.k}
+        />
+    {/if}
+    {#if transform.k > 8 || city.health < 100}
+        <rect
+            x={mapTiler(projection(city.location))[0] - city.nameLength / transform.k}
+            y={mapTiler(projection(city.location))[1] - 14 / transform.k}
+            width={200 / 2 / transform.k}
+            height={6 / transform.k}
+            fill="#064977"
+            stroke="none"
+        />
+        <rect
+            x={mapTiler(projection(city.location))[0] - city.nameLength / transform.k}
+            y={mapTiler(projection(city.location))[1] - 14 / transform.k}
+            width={Math.max(city.health / 4, 0) / 2 / transform.k}
+            height={6 / transform.k}
+            fill="#1BA1FF"
+            stroke="none"
+        />
+    {/if}
+    <circle
+        cx={mapTiler(projection(city.location))[0] +
+            (transform.k > 8 ? -(12 + city.nameLength) / transform.k : 0)}
+        cy={mapTiler(projection(city.location))[1] + (transform.k > 8 ? -16 / transform.k : 0)}
+        r={8 / transform.k}
+        fill={nation.color}
+        stroke="none"
+    />
+    <!-- "#3087EC" -->
+    <text
+        x={mapTiler(projection(city.location))[0] +
+            (transform.k > 8 ? -(12 + city.nameLength) / transform.k : 0)}
+        y={mapTiler(projection(city.location))[1] +
+            (transform.k > 8 ? -12 / transform.k : 3 / transform.k)}
+        font-size={10 / transform.k}
+        stroke-width={1 / transform.k}
+        class="city-pop">{Math.round(city.population)}</text
+    >
+    {#if isPlayer}
+        <circle
+            on:click|stopPropagation={() => {
+                activeHudItem = '';
+                if (itemSelected && itemSelected.type === 'jet') {
+                    jetController.addWaypoint(itemSelected, city.location);
+                    itemSelected.canAttackCities = true;
+                } else {
+                    itemSelected = city;
+                }
+            }}
+            cx={mapTiler(projection(city.location))[0]}
+            cy={mapTiler(projection(city.location))[1]}
+            r={20 / transform.k}
+            fill="transparent"
+            stroke="none"
+            opacity="0.5"
+            class="selection-helper"
+        />
+    {:else if itemSelected && itemSelected.type === 'jet'}
+        <circle
+            on:click|stopPropagation={() => {
+                jetController.addWaypoint(itemSelected, city.location);
+                itemSelected.canAttackCities = true;
+            }}
+            cx={mapTiler(projection(city.location))[0]}
+            cy={mapTiler(projection(city.location))[1]}
+            r={20 / transform.k}
+            fill="transparent"
+            stroke="none"
+            opacity="0.5"
+            class="selection-helper"
+        />
+    {/if}
 {/each}
-{#key settlerSelected}
+{#key itemSelected}
 	{#each nation.settlers as settler}
 		<svg
 			x={mapTiler(projection(settler.location))[0] - 8 / transform.k}
@@ -469,22 +582,22 @@
 			/>
 			<path
 				d="M5 16C5 16 6 15 9 15C12 15 14 17 17 17C20 17 21 16 21 16V4C21 4 20 5 17 5C14 5 12 3 9 3C6 3 5 4 5 4V16Z"
-				fill="#21AE51"
+				fill={nation.color}
 			/>
 			<path
 				d="M5 16C5 16 6 15 9 15C12 15 14 17 17 17C20 17 21 16 21 16V4C21 4 20 5 17 5C14 5 12 3 9 3C6 3 5 4 5 4V16ZM5 16V23"
-				stroke="#21AE51"
+				stroke={nation.color}
 				stroke-width="2"
 				stroke-linecap="round"
 				stroke-linejoin="round"
 			/>
 		</svg>
-		{#if settlerSelected}
+		{#if itemSelected && itemSelected.type === 'settler'}
 			<path
 				d={settler.waypoints.path}
 				fill="none"
 				stroke="#1BA1FF"
-				opacity={settler === settlerSelected ? 1 : 0.5}
+				opacity={settler === itemSelected ? 1 : 0.5}
 				stroke-width={2 / transform.k}
 			/>
 			{#each settler.waypoints.points as point}
@@ -495,7 +608,7 @@
 					height={16 / transform.k}
 					viewBox="0 0 20 20"
 					fill="none"
-					opacity={settler === settlerSelected ? 1 : 0.5}
+					opacity={settler === itemSelected ? 1 : 0.5}
 					xmlns="http://www.w3.org/2000/svg"
 				>
 					<rect
@@ -514,7 +627,7 @@
 			<circle
 				on:click|stopPropagation={() => {
 					activeHudItem = '';
-					settlerSelected = settler;
+					itemSelected = settler;
 				}}
 				cx={mapTiler(projection(settler.location))[0]}
 				cy={mapTiler(projection(settler.location))[1]}
@@ -522,12 +635,12 @@
 				fill="transparent"
 				stroke="none"
 				opacity="0.5"
-				class={isPlayer ? 'jet-helper' : ''}
+				class={isPlayer ? 'selection-helper' : ''}
 			/>
 		{/if}
 	{/each}
 {/key}
-{#key jetSelected}
+{#key itemSelected}
 	{#each nation.jets as jet}
 		{#if jet.guard.guarding}
 			<circle
@@ -540,46 +653,13 @@
 				style="background: conic-gradient(red, orange, yellow, green, blue);"
 				stroke-width={1 / transform.k}
 			/>
-			<!-- <svg 
-                x={mapTiler(projection(jet.guard.center))[0]}
-                y={mapTiler(projection(jet.guard.center))[1]}
-                width="10" 
-                height="10" 
-                viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
-            >
-                <circle cx="20" cy="20" r="19.5" stroke="url(#paint0_angular_69_395)"/>
-    
-            </svg> -->
-
-			<!-- {#if transform.k > 6}
-            <svg  
-                x={mapTiler(projection(jet.guard.center))[0] - 10/transform.k}
-                y={mapTiler(projection(jet.guard.center))[1] - 10/transform.k} 
-                width={20 / transform.k}
-                height={20 / transform.k}
-                stroke="none"
-                viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg"
-            >
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6 0.606934L0 2.85693V8.10693C0 12.6069 6 15.6069 6 15.6069C6 15.6069 6.00456 15.6047 6.01343 15.6001V0.611969Z" fill="#7CBBFF"/>
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6.02685 0.606934L12.0239 2.85693V8.10693C12.0239 12.6069 6.02685 15.6069 6.02685 15.6069C6.02685 15.6069 6.02229 15.6047 6.01343 15.6001V0.611969Z" fill="#2B91FF"/>
-            </svg>
-            {/if} -->
 		{/if}
-		<!-- {#if jet.guard.guarding}
-            <path
-                d={jet.guard.path}
-                fill="none"
-                stroke="#1BA1FF"
-                opacity="0.5"
-                stroke-width={2 / transform.k}
-            />
-        {/if} -->
-		{#if jetSelected}
+		{#if itemSelected && itemSelected.type === 'jet'}
 			<path
 				d={jet.waypoints.path}
 				fill="none"
 				stroke="#1BA1FF"
-				opacity={jet === jetSelected ? 1 : 0.5}
+				opacity={jet === itemSelected ? 1 : 0.5}
 				stroke-width={2 / transform.k}
 			/>
 			{#each jet.waypoints.points as point}
@@ -590,7 +670,7 @@
 					height={16 / transform.k}
 					viewBox="0 0 20 20"
 					fill="none"
-					opacity={jet === jetSelected ? 1 : 0.5}
+					opacity={jet === itemSelected ? 1 : 0.5}
 					xmlns="http://www.w3.org/2000/svg"
 				>
 					<rect
@@ -609,7 +689,7 @@
 				d={jet.patrol.path}
 				fill="none"
 				stroke="#FF7425"
-				opacity={jet === jetSelected ? 1 : 0.5}
+				opacity={jet === itemSelected ? 1 : 0.5}
 				stroke-width={2 / transform.k}
 			/>
 			<path
@@ -628,7 +708,7 @@
 					height={16 / transform.k}
 					viewBox="0 0 20 20"
 					fill="none"
-					opacity={jet === jetSelected ? 1 : 0.5}
+					opacity={jet === itemSelected ? 1 : 0.5}
 					xmlns="http://www.w3.org/2000/svg"
 				>
 					<rect
@@ -661,21 +741,10 @@
 		<path
 			transform="rotate({jet.rotation} 15 15)"
 			d="M21.5897 19.0897L17.9979 15.4979C17.5105 15.0105 17.6508 14.1876 18.2723 13.8893L28.3662 9.0442C28.9462 8.76584 29.1162 8.02028 28.7144 7.51798L27.8775 6.47193C27.6454 6.18175 27.2715 6.04423 26.9067 6.11484L12.5014 8.90296C12.1865 8.96391 11.8614 8.87009 11.6274 8.65071L4.14575 1.63664C4.04953 1.54644 3.93642 1.47616 3.81293 1.42985L3.45511 1.29566C1.96837 0.738138 0.456035 2.05216 0.800485 3.60218L0.940607 4.23273C0.979487 4.40769 1.06467 4.56899 1.18726 4.69974L8.14803 12.1246C8.36891 12.3602 8.46241 12.6879 8.39908 13.0046L5.60496 26.9752C5.53939 27.3031 5.64201 27.642 5.87843 27.8784L7.01894 29.0189C7.50158 29.5016 8.31523 29.3695 8.62048 28.759L13.4127 19.1746C13.7081 18.5837 14.4851 18.4366 14.9761 18.8785L18.5421 22.0879C18.8229 22.3406 18.9373 22.7299 18.8379 23.0943L17.6527 27.4401C17.5583 27.7863 17.6566 28.1566 17.9103 28.4103L18.6048 29.1048C19.0615 29.5615 19.825 29.4719 20.1635 28.9218L23.3506 23.7428C23.4482 23.5841 23.5883 23.4558 23.755 23.3725L28.3936 21.0532C28.963 20.7685 29.125 20.0312 28.7273 19.5341L27.9103 18.5129C27.6612 18.2015 27.251 18.0679 26.8663 18.1728L22.5599 19.3473C22.2137 19.4417 21.8434 19.3434 21.5897 19.0897Z"
-			fill={isPlayer ? (jetSelected === jet ? nation.color : nation.color) : nation.color}
+			fill={isPlayer ? (itemSelected === jet ? nation.color : nation.color) : nation.color}
 			stroke="white"
 		/>
 	</svg>
-	<!-- {#if transform.k > 8}
-		<svg
-			x={mapTiler(projection(jet.location))[0] + 40 / transform.k / 2}
-			y={mapTiler(projection(jet.location))[1] - 30 / transform.k / 2}
-			width={30 / transform.k}
-			height={30 / transform.k}
-			stroke="none"
-		>
-			<svelte:component this={nation.flag} />
-		</svg>
-	{/if} -->
 	{#if transform.k > 8 || jet.health < 100}
 		<rect
 			x={mapTiler(projection(jet.location))[0] + -50 / transform.k / 2}
@@ -698,7 +767,7 @@
 		<circle
 			on:click|stopPropagation={() => {
 				activeHudItem = '';
-				jetSelected = jet;
+				itemSelected = jet;
 			}}
 			cx={mapTiler(projection(jet.location))[0]}
 			cy={mapTiler(projection(jet.location))[1]}
@@ -706,7 +775,7 @@
 			fill="transparent"
 			stroke="none"
 			opacity="0.5"
-			class={isPlayer ? 'jet-helper' : ''}
+			class={isPlayer ? 'selection-helper' : ''}
 		/>
 	{/if}
 	<!-- <circle
@@ -749,7 +818,7 @@
 		pointer-events: none;
 	}
 
-	.jet-helper:hover {
-		fill: rgba(255, 255, 255, 0.2);
+	.selection-helper:hover {
+		fill: rgba(255, 255, 255, 0.5);
 	}
 </style>

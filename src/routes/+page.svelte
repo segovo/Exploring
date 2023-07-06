@@ -1,4 +1,5 @@
 <script>
+					
 	import { json } from 'd3';
 	// import { geoPath, geoNaturalEarth1, select } from 'd3';
 	import * as d3 from 'd3';
@@ -8,20 +9,12 @@
 	import { geoPatterson, geoArmadillo } from 'd3-geo-projection';
 	import _ from 'lodash';
 	import * as turf from '@turf/turf';
-	// import * as simpleWorldMap from '$lib/map/simpleworld.json';
-	// import * as complexWorldMap from '$lib/map/world.json';
-	// import * as worldMap from '$lib/map/world.json';
-	// import * as veryComplexWorldMap from '$lib/map/ne_10m_admin_0_countries.json';
-	// import * as neworldMap from '$lib/map/ne_50m_admin_0_countries_lakes.json';
 	import * as neworldMap from '$lib/map/ne_110m_admin_0_countries_lakes.json'
-	// import * as neboundaryLinesStates from '$lib/map/ne_50m_admin_1_states_provinces_lakes_lines.json';
     import * as neboundaryLinesStates from '$lib/map/ne_110m_admin_1_states_provinces_lines.json';
-	// import * as neboundaryLines from '$lib/map/ne_50m_admin_0_boundary_lines_land.json';
     import * as neboundaryLines from '$lib/map/ne_110m_admin_0_boundary_lines_land.json';
 	import * as populatedPlaces from '$lib/map/ne_50m_populated_places_simple.json';
 	import * as states from '$lib/map/ne_50m_admin_1_states_provinces_lakes.json';
 	import * as urbanAreas from '$lib/map/ne_50m_urban_areas.json';
-	// import * as countryJson from '$lib/data/countries.json';
 	import * as countryJson from '$lib/data/mergedData.json';
 	import * as countryCenters from '$lib/data/countrycenters.json';
 	import * as importAirports from '$lib/data/airports/ne_10m_airports.json';
@@ -32,7 +25,9 @@
     import US from '$lib/components/flags/US.svelte'
     import RU from '$lib/components/flags/RU.svelte'
     import EG from '$lib/components/flags/EG.svelte'
-
+    import CityController from '$lib/components/CityController.svelte'
+    import SettlerController from '$lib/components/SettlerController.svelte'
+    import JetController from '$lib/components/JetController.svelte'
 
 	let airports = importAirports;
 	const geojson = neworldMap;
@@ -93,14 +88,6 @@
 		});
 	});
 
-	// let boundaryLinesStates = [];
-	// neboundaryLinesStates.geometries.forEach((geojson, i) => {
-	// 	const chunks = turf.lineChunk(geojson, 200);
-	// 	chunks.features.forEach((chunk) => {
-	// 		chunk.center = turf.centroid(chunk);
-	// 		boundaryLinesStates.push(chunk);
-	// 	});
-	// });
     let boundaryLinesStates = [];
 	neboundaryLinesStates.features.forEach((geojson, i) => {
 		const chunks = turf.lineChunk(geojson, 200);
@@ -155,10 +142,6 @@
 	const mapRealLeftEdge = mapSize[0][0];
 	const mapRealRightEdge = mapSize[1][0];
 	const mapRealWidth = mapSize[1][0] - mapSize[0][0];
-
-	// mapSize[0][0] = mapSize[0][0] - 200;
-	// mapSize[1][0] = mapSize[1][0] + 200;
-
 	const mapWidth = mapSize[1][0] - mapSize[0][0];
 	const mapHeight = mapSize[1][1] - mapSize[0][1];
 
@@ -172,37 +155,7 @@
 		.on('zoom', zoomed)
 		.clickDistance(10);
 
-	// .translateExtent(mapSize)
 	const path = d3.geoPath(projection);
-	// $: path = getPath(scale);
-	// $: path = d3.geoPath(projection);
-
-	// $: bounds = d3
-	// 	.geoPath(projection)
-	// 	// .projection({ stream: (stream) => projection.stream(stream) })
-	// 	.bounds(geojson);
-
-	// function getPath(s) {
-	// 	return d3.geoPath(projection);
-	// 	// .projection({ stream: (stream) => projection.stream(stream) })
-	// 	// .pointRadius(0.01 * s);
-	// }
-
-	// const initialTransform = { k: 6.147500725152074, x: -2193.8890833797695, y: -634.4553424635553 }
-
-	function centerMap() {
-		// scale =
-		// 	0.95 /
-		// 	Math.max((bounds[1][0] - bounds[0][0]) / clientX, (bounds[1][1] - bounds[0][1]) / clientY);
-		// projection
-		// 	.scale(scale)
-		// 	.translate([
-		// 		(clientX - scale * (bounds[1][0] + bounds[0][0])) / 2,
-		// 		(clientY - scale * (bounds[1][1] + bounds[0][1])) / 2
-		// 	]);
-		// d3Svg.transition().duration(750).call(zoom.transform, initialTransform);
-		// if (clientX < 800) d3Svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
-	}
 
 	onMount(async () => {
 		d3Svg = d3.select(svg);
@@ -215,8 +168,10 @@
 
         const interval = setInterval(() => {
             currentTick++;
-            
-            nations.forEach(nation => {if (nation.component != null) nation.component?.tick(currentTick)})
+
+            nations.forEach(nation => {if (nation && nation.component) {
+                nation.component?.tick(currentTick)
+            }})
 
             if (currentTick % 100 === 0) {
                 // Calculate nation borders
@@ -224,7 +179,7 @@
                     let countries = []
                     dataset.forEach(country => {
                         nation.cities.forEach(city => {
-                            const isInside = turf.booleanPointInPolygon(city.center, country.geometry)
+                            const isInside = turf.booleanPointInPolygon(city.location, country.geometry)
                             if (isInside) {
                                 if (countries.indexOf(country) === -1) {
                                     countries.push(country);
@@ -320,7 +275,6 @@
 	let clientX;
 	let clientY;
 
-	$: console.log('selected: ', selected);
 	let selected;
 	let hovered;
 
@@ -402,68 +356,8 @@
 		pointData.x = projection(point.properties.center)[0];
 		pointData.y = projection(point.properties.center)[1];
 		pointData.point = point;
-		pointData.type = 'tier1';
-		// pointData.point.properties.labelrank = point.properties.LABELRANK - 1;
-
 		tier1data.push(pointData);
 	});
-
-	// cityNamesDataset.sort((a, b) => (a.properties.labelrank > b.properties.labelrank ? -1 : 1));
-	// cityNamesDataset.splice(0, cityNamesDataset.length - 300);
-	// console.log('cityNamesDataset: ', cityNamesDataset);
-
-	// cityNamesDataset.forEach((point) => {
-	// 	let pointData = {};
-	// 	pointData.x = projection(point.geometry.coordinates)[0];
-	// 	pointData.y = projection(point.geometry.coordinates)[1];
-	// 	point.properties.center = point.geometry.coordinates;
-	// 	pointData.point = point;
-	// 	pointData.type = 'tier2';
-
-	// 	tier2data.push(pointData);
-	// });
-
-	// stateNamesDataset.forEach((point) => {
-	// 	console.log('adding');
-	// 	let pointData = {};
-
-	// 	const centerX = (point.bbox[0] + point.bbox[2]) / 2;
-	// 	const centerY = (point.bbox[1] + point.bbox[3]) / 2;
-	// 	point.properties.center = [centerX, centerY];
-	// 	// pointData.x = projection(point.geometry.coordinates)[0];
-	// 	// pointData.y = projection(point.geometry.coordinates)[1];
-	// 	pointData.x = projection(centerX);
-	// 	pointData.y = projection(centerY);
-	// 	pointData.point = point;
-
-	// 	tier2data.push(pointData);
-	// });
-
-	// airports.features.forEach((airport) => {
-	// 	let pointData = {};
-	// 	pointData.x = projection(airport.geometry.coordinates)[0];
-	// 	pointData.y = projection(airport.geometry.coordinates)[1];
-	// 	airport.properties.center = airport.geometry.coordinates;
-	// 	pointData.point = airport;
-	// 	pointData.type = 'tier3';
-
-	// 	tier3data.push(pointData);
-	// });
-
-	// let zoomLevels = [
-	// 	{ k: 2.1, radius: 40, hasRun: false },
-	// 	{ k: 2.4, radius: 24, hasRun: false },
-	// 	{ k: 3.5, radius: 12, hasRun: false },
-	// 	{ k: 5, radius: 6, hasRun: false },
-	// 	{ k: 6.5, radius: 5, hasRun: false },
-	// 	{ k: 8, radius: 4, hasRun: false },
-	// 	{ k: 9, radius: 3, hasRun: false },
-	// 	{ k: 10, radius: 2, hasRun: false },
-	// 	{ k: 14, radius: 1, hasRun: false },
-	// 	{ k: 18, radius: 0.8, hasRun: false },
-	// 	{ k: 32, radius: 0.3, hasRun: false },
-	// 	{ k: 64, radius: 0, hasRun: false }
-	// ];
 
 	let zoomLevels = [
 		{ k: 2.1, radius: 40, hasRun: false },
@@ -516,8 +410,6 @@
 				}
 
 				zoomLevels = zoomLevels;
-				// console.log(dataset);
-				// airports = airports;
 			}
 		});
 	}
@@ -645,21 +537,6 @@
 	}
 
 	$: transform, updateDisplayedPoints();
-
-	// function testVis() {
-	// 	if (mousePos && mousePos.x) {
-	// 		// const mousePosOnMap = projection([mousePos.x, mousePos.y]);
-	// 		// const mousePosOnMap = transform.apply([mousePos.x, mousePos.y])
-	// 		const neighbors = quadtree.find(d3Pointer[0], d3Pointer[1], 10);
-	// 		console.log('Neighbors to mouse: ', neighbors);
-	// 	}
-	// }
-
-	// $: mousePos, testVis();
-
-	// $: if (mousePos) { console.log(transform.apply([mousePos.x, mousePos.y])); }
-	// $: boxTopLeftX = viewboxTopLeft[0] - 100 / transform.k;
-	// $: boxBottomRightX = viewboxBottomRight[0] + 100 / transform.k;
 	$: boxTopLeftX = viewboxTopLeft[0];
 	$: boxBottomRightX = viewboxBottomRight[0];
 
@@ -713,12 +590,7 @@
 
 	function interpolate(a, b, frac) {
         const interpolateProjection = genInterp(a, b);
-
         const interpolatedCoords = interpolateProjection(frac);
-
-		// frac = Math.max(Math.min(frac, 1), 0);
-		// var nx = a[0] + (b[0] - a[0]) * frac;
-		// var ny = a[1] + (b[1] - a[1]) * frac;
 		return interpolatedCoords;
 	}
 
@@ -744,24 +616,10 @@
 		return speed * deltaTime;
 	}
 
-    // PERFORMANCE TESTING
-    // let fpsSamples = [] 
-    // let tickSamples = []
-
-    // function jetSearchForEnemies(jet, jetQuadtree) {
-    //     const neighbor = jetQuadtree.find(jet.x, jet.y, 10);
-    //     if (neighbor) {
-    //         if (movingObjects.indexOf(jet.point) === -1) {
-    //             jet.point.properties.startLocation = jet.point.properties.location
-    //             jet.point.properties.target = neighbor.point.properties.location
-    //             jet.point.properties.pointDistance = Math.sqrt(Math.pow(jet.point.properties.target[0] - jet.point.properties.location[0], 2) + Math.pow(jet.point.properties.target[1] - jet.point.properties.location[1], 2))
-    //             jet.point.properties.targetDistance = 0;
-    //             movingObjects.push(jet.point)
-    //         }
-    //     }
-    // }
+    let movingEntities = []
  
 	function loop() {
+
 		frameCount++;
 
 		deltaTime = (performance.now() - previousTime) / 1000;
@@ -779,128 +637,27 @@
 		}
 
 		distanceMoved = distanceMoved + moveDistance(0.1);
-		shipLocation = interpolate(vigo, wilmington, distanceMoved % 1.1);
-		shipLocation2 = interpolate(wilmington, vigo, distanceMoved % 1.1);
-		shipLocation3 = interpolate(newyork, vigo, distanceMoved % 1.1);
 
-        // movingObjects.forEach(object => {
-        //     object.move()
-        // })  
-
-        movingSettlers.forEach(settler => {
-            moveSettler(settler)
-        })
-
-        movingJets.forEach(jet => {
-            moveJet(jet)
+        movingEntities.forEach(entity => {
+            switch(entity.type) {
+                case 'settler':
+                    settlerController.move(entity);
+                    break;
+                case 'jet':
+                    jetController.move(entity);
+                    break;
+            }
         })
 
 		requestAnimationFrame(loop);
 	}
 
-    function stopSettler(settler) {
-        movingSettlers.splice(movingSettlers.indexOf(settler), 1)
-        settler.startLocation = []
-        settler.target = []
-        settler.targetDistance = 0
-        movingSettlers = movingSettlers
-    }
-
-    function moveSettler(settler) {
-        console.log(settler.waypoints.moving)
-        settler.targetDistance = settler.targetDistance + 0.005/settler.pointDistance
-        settler.location = interpolate(settler.startLocation, settler.target, settler.targetDistance)        
-
-        if (settler.waypoints.moving) {
-            const projectedPoints = settler.waypoints.points.map(point => projection(point))
-            projectedPoints.unshift(projection(settler.location))
-            settler.waypoints.path = d3.line()(projectedPoints)
-        }
-
-        if (Math.sqrt(Math.pow(settler.target[0] - settler.location[0], 2) + Math.pow(settler.target[1] - settler.location[1], 2)) < 0.1) {
-            if (settler.waypoints.moving) {
-                if (settler.waypoints.points.length) {
-                    settler.waypoints.points.splice(0, 1)
-                    if (!settler.waypoints.points.length) {
-                        settler.waypoints.moving = false
-                        settler.waypoints.path = ''
-                    }
-                }
-            }
-            stopSettler(settler)
-        }
-        nations = nations    
-    }
-
-    function stopJet(jet) {
-        movingJets.splice(movingJets.indexOf(jet), 1)
-        jet.startLocation = []
-        jet.target = []
-        jet.targetDistance = 0
-        movingJets = movingJets
-    }
-    
-    function moveJet(jet) {
-        console.log(jet.target)
-        if (jet.guard.guarding && jet.guard.circling) {
-            const x = jet.guard.center[0] + jet.guard.radius * Math.cos(jet.guard.angle);
-            const y = jet.guard.center[1] + jet.guard.radius * Math.sin(jet.guard.angle);
-            const jetPosition = [x, y];
-            jet.location = jetPosition
-            jet.target = jetPosition
-            jet.rotation = 45 - (jet.guard.angle * 180 / Math.PI) + 180
-        } else {
-            jet.targetDistance = jet.targetDistance + 0.005/jet.pointDistance
-            jet.location = interpolate(jet.startLocation, jet.target, jet.targetDistance)
-            jet.rotation = turf.bearing(jet.location, jet.target) + 45
-        }
-
-        if (jet.waypoints.moving) {
-            const projectedPoints = jet.waypoints.points.map(point => projection(point))
-            projectedPoints.unshift(projection(jet.location))
-            jet.waypoints.path = d3.line()(projectedPoints)
-        }
-
-        if (Math.sqrt(Math.pow(jet.target[0] - jet.location[0], 2) + Math.pow(jet.target[1] - jet.location[1], 2)) < 0.1) {
-            if (jet.patrol.patrolling) {
-                jet.patrol.nextPoint++
-            } 
-            if (jet.guard.guarding) {
-                jet.guard.angle -= 0.01
-                if (jet.guard.angle <= -2 * Math.PI) {
-                    jet.guard.angle = 0; // Reset angle once a full circle is completed
-                }
-            }
-            if (jet.waypoints.moving) {
-                if (jet.waypoints.points.length) {
-                    jet.waypoints.points.splice(0, 1)
-                    if (!jet.waypoints.points.length) {
-                        jet.waypoints.moving = false
-                        jet.waypoints.path = ''
-                    }
-                }
-            }
-
-            if (!jet.guard.guarding) {
-                stopJet(jet)
-            }
-        }
-        nations = nations    
-    }
-
-
-	// $: shipLocation = interpolate(vigo, wilmington, currentTick/20 % 1.1)
-	// $: shipLocation2 = interpolate(wilmington, vigo, currentTick/20 % 1.1)
-	// $: shipLocation3 = interpolate(newyork, vigo, currentTick/20 % 1.1)
 	$: ships = [shipLocation, shipLocation2, shipLocation3];
 
 	let mousePos;
 	let d3Pointer;
 	function handleMousemove(e) {
 		d3Pointer = transform.invert(d3.pointer(e, svg));
-		// console.log('D3 POINTER proj: ', d3Pointer);
-		// console.log('non: ', e.clientX, e.clientY)
-		// console.log('mousemove: ', projection([e.clientX, e.clientY])[0], projection([e.clientX, e.clientY])[1]);
 		mousePos = { x: e.clientX, y: e.clientY };
 	}
 
@@ -908,111 +665,38 @@
     let cityCost = 5;
     let playerCities = []
     let jetCost = 10;
-    // let playerJets = []
     let tikibarCost = 10;
     let playerTikiBars = []
     let id = 0;
-    let settlerSelected
-    let jetSelected
     const citiesUsed = []
 
-    // let enemyJets = [
-    // { 
-    //     properties: {
-    //         team: 2,
-    //         nation: 'BR',
-    //         location: [-63.49332721318746, 9.16254689921207],
-    //         startLocation: [],
-    //         target: [],
-    //         targetDistance: 0,
-    //         pointDistance: 0
-    //     },
-    //     move() {
-    //         this.properties.targetDistance = this.properties.targetDistance + 0.01/this.properties.pointDistance
-    //         this.properties.location = interpolate(this.properties.startLocation, this.properties.target, this.properties.targetDistance)
-    //         if (Math.sqrt(Math.pow(this.properties.target[0] - this.properties.location[0], 2) + Math.pow(this.properties.target[1] - this.properties.location[1], 2)) < 0.1) {
-    //             movingObjects.splice(movingObjects.indexOf(this), 1)
-    //             this.properties.startLocation = []
-    //             this.properties.target = []
-    //             this.properties.targetDistance = 0
-    //         }
-    //         enemyJets = enemyJets
-    //     }
-    // },
-    // {
-    //     properties: {
-    //         team: 2,
-    //         nation: 'BR',
-    //         location: [-78.08945788447889, 2.0829045368274346],
-    //         startLocation: [],
-    //         target: [],
-    //         targetDistance: 0,
-    //         pointDistance: 0
-    //     },
-    //     move() {
-    //         this.properties.targetDistance = this.properties.targetDistance + 0.01/this.properties.pointDistance
-    //         this.properties.location = interpolate(this.properties.startLocation, this.properties.target, this.properties.targetDistance)
-    //         if (Math.sqrt(Math.pow(this.properties.target[0] - this.properties.location[0], 2) + Math.pow(this.properties.target[1] - this.properties.location[1], 2)) < 0.1) {
-    //             movingObjects.splice(movingObjects.indexOf(this), 1)
-    //             this.properties.startLocation = []
-    //             this.properties.target = []
-    //             this.properties.targetDistance = 0
-    //         }
-    //         enemyJets = enemyJets
-    //     }
-    // }
-    // ]
-
-    // let jetData = []
-	// enemyJets.forEach((jet) => {
-	// 	let pointData = {};
-	// 	pointData.x = projection(jet.properties.location)[0];
-	// 	pointData.y = projection(jet.properties.location)[1];
-	// 	pointData.point = jet;
-
-	// 	jetData.push(pointData);
-	// });
-
-
-    let movingSettlers = []
     let movingJets = []
     let moveUI = false
 
     function handleClick(e) {
-        // if (jetPatrolUI) {
-        //     jetSelected.patrol.points = [...jetSelected.patrol.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
-        //     const projectedPoints = jetSelected.patrol.points.map(point => projection(point))
-        //     jetSelected.patrol.path = d3.line()(projectedPoints)
-        //     jetSelected.patrol.endToStartPath = d3.line()([projectedPoints[projectedPoints.length - 1], projectedPoints[0]])
-        //     return
-        // }
-        if (settlerSelected && moveUI) {
-            moveUI = false;
-            settlerSelected.waypoints.points = [...settlerSelected.waypoints.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
-            const projectedPoints = settlerSelected.waypoints.points.map(point => projection(point))
-            projectedPoints.unshift(projection(settlerSelected.location))
-            settlerSelected.waypoints.path = d3.line()(projectedPoints)
-            settlerSelected.waypoints.moving = true;
-            return
-        }
-
-        if (jetSelected && moveUI) {
-            moveUI = false;
-            jetSelected.waypoints.points = [...jetSelected.waypoints.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
-            const projectedPoints = jetSelected.waypoints.points.map(point => projection(point))
-            projectedPoints.unshift(projection(jetSelected.location))
-            jetSelected.waypoints.path = d3.line()(projectedPoints)
-            jetSelected.waypoints.moving = true;
-
-            if (jetSelected.guard.guarding) {
-                jetSelected.guard.guarding = false;
-                stopJet(jetSelected)
-                jetSelected.location = jetSelected.guard.center
+        if (itemSelected) {
+            switch(itemSelected.type) {
+                case 'settler':
+                    if (moveUI) {
+                        moveUI = false;
+                        itemSelected.waypoints.points = [...itemSelected.waypoints.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
+                        const projectedPoints = itemSelected.waypoints.points.map(point => projection(point))
+                        projectedPoints.unshift(projection(itemSelected.location))
+                        itemSelected.waypoints.path = d3.line()(projectedPoints)
+                        itemSelected.waypoints.moving = true;
+                        return;
+                    }
+                    break;
+                case 'jet':
+                    if (moveUI) {
+                        moveUI = false;
+                        jetController.addWaypoint(itemSelected, projection.invert(transform.invert(d3.pointer(e, svg))))
+                        return;
+                    }
+                    break;
             }
-            
-            jetSelected.patrol.patrolling = false;
-            return
         }
+
 
         if (activeHudItem.name === 'Tiki Bar' && nations[0].credits >= nations[0].items.tikibar.cost) {
             nations[0].credits -= nations[0].items.tikibar.cost
@@ -1045,8 +729,7 @@
         }
 
         // else
-        jetSelected = null
-        settlerSelected = null
+        itemSelected = null;
         activeHudItem = ''
     }
 
@@ -1064,8 +747,7 @@
     let activeHudItem;
     
     function toggleItem(item) {
-        jetSelected = null
-        settlerSelected = null
+        itemSelected = null
         if (activeHudItem === item) {
             activeHudItem = ''
         } else {
@@ -1091,8 +773,8 @@
             },
             jet: {
                 name: 'Jet',
-                cost: 100,
-                costIncrease: 1
+                cost: 10,
+                costIncrease: 10
             }
         }
 
@@ -1102,8 +784,17 @@
         },
         defensive: {
             name: 'Defensive',
+            purchaseOrder: ['city', 'jet', 'city'],
+            purchaseIndex: 0,
+            jetsPerAttack: 1,
+            attackProbability: 0.1,
+        },
+        offensive: {
+            name: 'Offensive',
             purchaseOrder: ['city', 'jet', 'jet'],
-            purchaseIndex: 0
+            purchaseIndex: 0,
+            jetsPerAttack: 3,
+            attackProbability: 0.3,
         }
     }
 
@@ -1112,6 +803,7 @@
     let nations = [
         {
             name: 'United States of America',
+            capitalFounded: false,
             geometry: getGeometry('United States of America'),
             flag: US,
             team: 1,
@@ -1130,15 +822,16 @@
         },
         {
             name: 'Brazil',
+            capitalFounded: false,
             geometry: getGeometry('Brazil'),
             flag: BR,
-            team: 2,
+            team: 3,
             color: '#2151AE',
             fill: '#89A8E6',
             countries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
-            credits: 20,
+            credits: 40,
             items: structuredClone(items),
             cities: [],
             settlers: [],
@@ -1148,6 +841,7 @@
         },
         {
             name: 'Russia',
+            capitalFounded: false,
             geometry: getGeometry('Russia'),
             flag: RU,
             team: 2,
@@ -1155,8 +849,8 @@
             fill: '#F08D92',
             countries: [],
             border: {},
-            strategy: structuredClone(nationStrategies.defensive),
-            credits: 20,
+            strategy: structuredClone(nationStrategies.offensive),
+            credits: 100,
             items: structuredClone(items),
             cities: [],
             settlers: [],
@@ -1166,6 +860,7 @@
         },
         {
             name: 'Egypt',
+            capitalFounded: false,
             geometry: getGeometry('Egypt'),
             flag: EG,
             team: 2,
@@ -1174,7 +869,7 @@
             countries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
-            credits: 20,
+            credits: 40,
             items: structuredClone(items),
             cities: [],
             settlers: [],
@@ -1184,15 +879,16 @@
         },
         {
             name: 'United Kingdom',
+            capitalFounded: false,
             geometry: getGeometry('United Kingdom'),
             flag: EG,
-            team: 2,
+            team: 3,
             color: '#2184AE',
             fill: '#89CAE5',
             countries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
-            credits: 20,
+            credits: 40,
             items: structuredClone(items),
             cities: [],
             settlers: [],
@@ -1201,30 +897,7 @@
             jets: []
         }
     ]
-
-    // #50B5FF
-    // #F2B2F0
-    // #FEA6A6
     
-    // {
-    //         name: 'Russia',
-    //         geometry: getGeometry('Russia'),
-    //         flag: RU,
-    //         team: 2,
-    //         color: '#FEA6A6',
-    //         countries: [],
-    //         border: {},
-    //         strategy: structuredClone(nationStrategies.defensive),
-    //         credits: 70,
-    //         items: structuredClone(items),
-    //         cities: [],
-    //         citiesUsed: [],
-    //         tikibars: [],
-    //         jets: []
-    //     }
-    
-
-    console.log('dataset: ', dataset)
     function getGeometry(countryName) {
         const country = dataset.find(country => country.properties.NAME === countryName)
         return country.geometry
@@ -1253,12 +926,16 @@
         jet.patrol.patrolling = true;
     }
 
-    function jetGuard(jet) {
-        jet.guard.guarding = true;
-        // jet.guard.points = turf.circle(jet.location, 200, { steps: 128 }).geometry.coordinates[0]
-        jet.guard.center = structuredClone(jet.location)
-        // jet.location = jet.guard.points[0]
+    async function destroyNation(nation) {
+        // The only way that works without errors... 
+        // ...Credit where credit is due https://stackoverflow.com/questions/64545260/svelte-using-bindthis-inside-each-block
+        nations = nations.filter((nat) => nat != nation)
     }
+
+    let itemSelected;
+    let cityController;
+    let settlerController;
+    let jetController;
 </script>
 
 <svelte:window
@@ -1269,173 +946,9 @@
 	bind:innerHeight={clientY}
 />
 
-<!-- {#if jetPatrolUI}
-    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; border: 5px solid #FF7425;" />
-    <div style="position: absolute; top: 0; left: 0;  pointer-events: none; background: #FF7425; color: white; font-weight: 700; font-size: 20px; padding: 10px;">
-        Patrol
-    </div>
-{/if} -->
-
-<!-- {#if moveUI}
-    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; border: 5px solid #1BA1FF;" />
-    <div style="position: absolute; top: 0; left: 0;  pointer-events: none; background: #1BA1FF; color: white; font-weight: 700; font-size: 20px; padding: 10px;">
-        Move
-    </div>
-{/if} -->
-
-{#if settlerSelected && !moveUI}
-    <div style="
-        position: absolute;
-        left: {transform.apply(projection(settlerSelected.location))[0] - 75}px;
-        top: {transform.apply(projection(settlerSelected.location))[1] - 60}px;
-        display: flex;
-        gap: 4px;
-        padding: 4px;
-        background: #2E2E2E;
-        border-radius: 3px;
-    ">
-    {#if !settlerSelected.waypoints.moving}
-        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
-            if (!settlerSelected.waypoints.moving) {
-                nations[0].component.buildCity(settlerSelected.location)
-                nations[0].settlers.splice(nations[0].settlers.indexOf(settlerSelected), 1)
-                settlerSelected = null
-            }
-        }}>
-                <svg
-                width={14}
-                height={14}
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <rect
-                    x="2.1213"
-                    width="10.6554"
-                    height="10.6554"
-                    transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
-                    fill="#1BA1FF"
-                    stroke="white"
-                    stroke-width="2.99998"
-                />
-            </svg>
-            Found City
-        </div>
-        {/if}
-        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
-            if (settlerSelected.waypoints.moving) {
-                moveUI = false
-                settlerSelected.waypoints.points = []
-                settlerSelected.waypoints.path = ''
-                settlerSelected.waypoints.moving = false;
-                stopSettler(settlerSelected)
-            } else {
-                moveUI = true
-            }
-        }}>
-                <svg
-                width={14}
-                height={14}
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <rect
-                    x="2.1213"
-                    width="10.6554"
-                    height="10.6554"
-                    transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
-                    fill="#1BA1FF"
-                    stroke="white"
-                    stroke-width="2.99998"
-                />
-            </svg>
-            {#if settlerSelected.waypoints.moving}
-                Cancel
-            {:else}
-                Move
-            {/if}
-        </div>
-    </div>
-{/if}
-
-{#if jetSelected && !moveUI}
-    <div style="
-        position: absolute;
-        left: {transform.apply(projection(jetSelected.location))[0] - 75}px;
-        top: {transform.apply(projection(jetSelected.location))[1] - 60}px;
-        display: flex;
-        gap: 4px;
-        padding: 4px;
-        background: #2E2E2E;
-        border-radius: 3px;
-    ">
-        {#if !jetSelected.waypoints.moving}
-            <div class="context-item" style="background: {jetSelected.guard.guarding  ? '#45444E' : '#1769C1'}" on:click|stopPropagation={() => {
-                activeHudItem = ''
-
-                if (jetSelected.guard.guarding) {
-                    jetSelected.guard.guarding = false;
-                    stopJet(jetSelected)
-                    jetSelected.location = jetSelected.guard.center
-                } else {
-                    jetGuard(jetSelected)
-                    // jetSelected.guard.guarding = true;
-                    jetSelected.waypoints.points = []
-                    jetSelected.waypoints.path = ''
-                    jetSelected.waypoints.moving = false;
-                    stopJet(jetSelected)
-                }
-
-                nations = nations
-            }}>
-                <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6 0.606934L0 2.85693V8.10693C0 12.6069 6 15.6069 6 15.6069C6 15.6069 6.00456 15.6047 6.01343 15.6001V0.611969Z" fill="#7CBBFF"/>
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.01343 0.611969L6.02685 0.606934L12.0239 2.85693V8.10693C12.0239 12.6069 6.02685 15.6069 6.02685 15.6069C6.02685 15.6069 6.02229 15.6047 6.01343 15.6001V0.611969Z" fill="#2B91FF"/>
-                </svg>
-                {#if jetSelected.guard.guarding}
-                    Cancel
-                {:else}
-                    Guard
-                {/if}
-            </div>
-        {/if}
-        <div class="context-item" style="background: #45444E" on:click|stopPropagation={() => {
-            if (jetSelected.waypoints.moving) {
-                moveUI = false
-                jetSelected.waypoints.points = []
-                jetSelected.waypoints.path = ''
-                jetSelected.waypoints.moving = false;
-                stopJet(jetSelected)
-            } else {
-                moveUI = true
-            }
-        }}>
-                <svg
-                width={14}
-                height={14}
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <rect
-                    x="2.1213"
-                    width="10.6554"
-                    height="10.6554"
-                    transform="matrix(0.707105 -0.707109 0.707105 0.707109 0.912335 11.594)"
-                    fill="#1BA1FF"
-                    stroke="white"
-                    stroke-width="2.99998"
-                />
-            </svg>
-            {#if jetSelected.waypoints.moving}
-                Cancel
-            {:else}
-                Move
-            {/if}
-        </div>
-    </div>
-{/if}
+<CityController bind:this={cityController} bind:citySelected={itemSelected} {transform} {projection} />
+<SettlerController bind:this={settlerController} bind:settlerSelected={itemSelected} bind:moveUI bind:activeHudItem {transform} {projection} bind:nations bind:movingEntities />
+<JetController bind:this={jetController} bind:jetSelected={itemSelected} bind:moveUI bind:activeHudItem {transform} {projection} bind:nations bind:movingEntities />
 
 {#if debugMenu}
     <div style="height: 10px; background-color: black; width: 100%;">
@@ -1507,7 +1020,7 @@
 {/if}
 
 <div style="display: flex; position: absolute;">    
-{#each nations as nation, i}
+{#each nations as nation, i (nation.name)}
     {#if i === 0 || debugMenu}
         <div class="top-hud">  
             <div style="font-weight: 700; color: black; text-shadow: rgb(255, 255, 255) 1px 0px 0px, rgb(255, 255, 255) 0.540302px 0.841471px 0px, rgb(255, 255, 255) -0.416147px 0.909297px 0px, rgb(255, 255, 255) -0.989992px 0.14112px 0px, rgb(255, 255, 255) -0.653644px -0.756802px 0px, rgb(255, 255, 255) 0.283662px -0.958924px 0px, rgb(255, 255, 255) 0.96017px -0.279415px 0px;">
@@ -1975,12 +1488,12 @@
 
         <!-- {/each} --> 
 
-        {#each nations as nation}
+        {#each nations as nation (nation.name)}
             <NationTerritory {nation} {transform} {path} {mapRealWidth} bind:hovered />
         {/each}
 
-        {#each nations as nation, i}
-            <Nation isPlayer={i === 0} bind:settlerSelected bind:jetSelected bind:this={nation.component} bind:nation bind:nations bind:movingJets bind:movingSettlers {mapTiler} {projection} {transform} {cityNamesDataset} {jetPatrolUI} bind:activeHudItem {path} />
+        {#each nations as nation, i (nation.name)}
+            <Nation {jetController} isPlayer={i === 0} bind:itemSelected bind:this={nation.component} bind:nation bind:nations bind:movingEntities {mapTiler} {projection} {transform} {cityNamesDataset} {jetPatrolUI} bind:activeHudItem {path} {destroyNation} />
         {/each}
 
         <!-- {#each nations[0].jets as jet}                    
