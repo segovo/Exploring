@@ -1,12 +1,12 @@
 <script>
-    import * as d3 from 'd3';
-    import { interpolate } from '$lib/utils';
+	import * as d3 from 'd3';
+	import { interpolate } from '$lib/utils';
 	import Options from '$lib/components/Options.svelte';
 	import Option from '$lib/components/Option.svelte';
 
 	export let settlerSelected;
 	export let moveUI;
-    export let activeHudItem;
+	export let activeHudItem;
 	export let transform;
 	export let projection;
 
@@ -14,7 +14,7 @@
 	export let movingEntities;
 
 	export function move(settler) {
-		settler.targetDistance = settler.targetDistance + 0.005 / settler.pointDistance;
+		settler.targetDistance = settler.targetDistance + 0.01 / settler.pointDistance;
 		settler.location = interpolate(settler.startLocation, settler.target, settler.targetDistance);
 
 		if (settler.waypoints.moving) {
@@ -33,7 +33,7 @@
 				if (settler.waypoints.points.length) {
 					settler.waypoints.points.splice(0, 1);
 					if (!settler.waypoints.points.length) {
-						settler.waypoints.moving = false;
+						// settler.waypoints.moving = false;
 						settler.waypoints.path = '';
 					}
 				}
@@ -43,7 +43,7 @@
 		nations = nations;
 	}
 
-    function stopSettler(settler) {
+	function stopSettler(settler) {
 		movingEntities.splice(movingEntities.indexOf(settler), 1);
 		settler.startLocation = [];
 		settler.target = [];
@@ -51,8 +51,16 @@
 		movingEntities = movingEntities;
 	}
 
+	export function setTarget(settler, location) {
+		settler.waypoints.points = [location];
+		const projectedPoints = settler.waypoints.points.map((point) => projection(point));
+		projectedPoints.unshift(projection(settler.location));
+		settler.waypoints.path = d3.line()(projectedPoints);
+		settler.waypoints.moving = true;
+	}
+
 	function optionFoundCity() {
-        activeHudItem = ''
+		activeHudItem = '';
 		if (!settlerSelected.waypoints.moving) {
 			nations[0].component.buildCity(settlerSelected.location);
 			nations[0].settlers.splice(nations[0].settlers.indexOf(settlerSelected), 1);
@@ -61,7 +69,7 @@
 	}
 
 	function optionMoveSettler() {
-        activeHudItem = ''
+		activeHudItem = '';
 		if (settlerSelected.waypoints.moving) {
 			moveUI = false;
 			settlerSelected.waypoints.points = [];

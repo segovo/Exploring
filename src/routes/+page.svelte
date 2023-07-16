@@ -31,12 +31,11 @@
 
 	let airports = importAirports;
 	const geojson = neworldMap;
-
 	let dataset = geojson.features;
-
 	let countryNamesDataset = geojson.features;
 	let cityNamesDataset = populatedPlaces.features;
 	// let stateNamesDataset = states.features;
+
 
 	const countryData = Object.entries(countryJson.default);
 
@@ -145,6 +144,8 @@
 	const mapWidth = mapSize[1][0] - mapSize[0][0];
 	const mapHeight = mapSize[1][1] - mapSize[0][1];
 
+    let currentRound = 1;
+
 	let zoom = d3
 		.zoom()
 		.scaleExtent([2, 1024])
@@ -169,6 +170,10 @@
         const interval = setInterval(() => {
             currentTick++;
 
+            if (currentTick % 100 === 0) {
+                currentRound++
+            }
+
             nations.forEach(nation => {if (nation && nation.component) {
                 nation.component?.tick(currentTick)
             }})
@@ -189,13 +194,6 @@
                     })
                     nation.countries = countries
 
-                    // const points = nation.countries.reduce((total, country) => {
-                    //         const coords = turf.coordAll(country);
-                    //         const points = coords.map(coord => turf.point(coord))
-                    //         // const points = turf.explode(country)
-                    //         return total.concat(points);
-                    //     }, []);
-                    // console.log(points)
                     if (nation.countries.length) {
                         const union = nation.countries.reduce((union, country) => {
                             // const poly = turf.flatten(country);
@@ -206,57 +204,12 @@
                                 console.log('2')
                                 return country
                             }
-                            // const points = coords.map(coord => turf.point(coord))
-                            // const points = turf.explode(country)
-                            // console.log('flat')
-                            // return total.concat(poly);
                         }, []);
         
                     nation.border = union
                     }
-    
-                    // console.log('featureCollection: ', turf.featureCollection(points))
-                    // console.log(path(turf.concave(turf.featureCollection(points))))
                 })
-
-
-
-                // console.log(nations)
             }
-
-            // let jetQuadtree = d3
-            // 	.quadtree()
-            // 	.x((d) => d.x)
-            // 	.y((d) => d.y);
-
-            // let friendlies = jetData.filter(jet => jet.point.properties.team === 2)
-            // let enemies = jetData.filter(jet => jet.point.properties.team === 1)
-
-            // jetQuadtree.addAll(enemies)
-
-            // friendlies.forEach(friendly => jetSearchForEnemies(friendly, jetQuadtree))
-
-            // if (Math.floor(Math.random()*200) === 0) {
-            //     playerCities.forEach((city) => {
-            //         city.properties.population += city.properties.growthRate
-            //     })
-            //     console.log("playerCities: ", playerCities)
-            //     playerCities = playerCities
-            // }
-
-            // playerCities.forEach(city => city.tick(currentTick))
-            // playerCities = playerCities
-
-            // if (currentTick % 600 === 0) {
-            //     // Every 600 ticks or 30 seconds
-            //     playerCities.forEach((city) => {
-            //         city.properties.population += 1
-            //         // playerGold += Math.floor(city.properties.population)
-            //     }) 
-                
-            //     playerCities = playerCities
-            // }
-
 
             tickTime = performance.now() - lastTickTime;
             lastTickTime = performance.now();
@@ -278,16 +231,28 @@
 	let selected;
 	let hovered;
 
-	const colors = [
-		'#D7F5A7',
-		'#C3E9A0',
-		'#BEE39C',
-		'#D7F5A7',
-		'#BEE39C',
-		'#BEE39C',
-		'#D7F5A7',
-		'#D7F5A7',
-		'#FDF0E6'
+	// const colors = [
+	// 	'#D7F5A7',
+	// 	'#C3E9A0',
+	// 	'#BEE39C',
+	// 	'#D7F5A7',
+	// 	'#BEE39C',
+	// 	'#BEE39C',
+	// 	'#D7F5A7',
+	// 	'#D7F5A7',
+	// 	'#FDF0E6'
+	// ];
+
+    const colors = [
+		'#B4DD93',
+		'#B4DD93',
+		'#B4DD93',
+		'#B4DD93',
+		'#B4DD93',
+		'#B4DD93',
+		'#B4DD93',
+		'#B4DD93',
+		'#F9EBE0'
 	];
 
 	let activeCountry;
@@ -601,10 +566,6 @@
 	let tickDelta = 0;
 	let currentTick = 0;
 
-
-	let shipLocation = [10, 10];
-	let shipLocation2 = [10, 10];
-	let shipLocation3 = [10, 10];
 	let fps = 0;
 	let frameCount = 0;
 	let lastFpsTime = 0;
@@ -652,8 +613,6 @@
 		requestAnimationFrame(loop);
 	}
 
-	$: ships = [shipLocation, shipLocation2, shipLocation3];
-
 	let mousePos;
 	let d3Pointer;
 	function handleMousemove(e) {
@@ -679,11 +638,7 @@
                 case 'settler':
                     if (moveUI) {
                         moveUI = false;
-                        itemSelected.waypoints.points = [...itemSelected.waypoints.points, projection.invert(transform.invert(d3.pointer(e, svg)))]
-                        const projectedPoints = itemSelected.waypoints.points.map(point => projection(point))
-                        projectedPoints.unshift(projection(itemSelected.location))
-                        itemSelected.waypoints.path = d3.line()(projectedPoints)
-                        itemSelected.waypoints.moving = true;
+                        settlerController.setTarget(itemSelected, projection.invert(transform.invert(d3.pointer(e, svg))))
                         return;
                     }
                     break;
@@ -784,14 +739,14 @@
         },
         defensive: {
             name: 'Defensive',
-            purchaseOrder: ['city', 'jet', 'city'],
+            purchaseOrder: ['settler', 'settler', 'settler'],
             purchaseIndex: 0,
             jetsPerAttack: 1,
             attackProbability: 0.1,
         },
         offensive: {
             name: 'Offensive',
-            purchaseOrder: ['city', 'jet', 'jet'],
+            purchaseOrder: ['settler', 'jet', 'jet'],
             purchaseIndex: 0,
             jetsPerAttack: 3,
             attackProbability: 0.3,
@@ -810,6 +765,7 @@
             color: '#21AE51',
             fill: '#89E59D',
             countries: [],
+            adjacentCountries: [],
             border: {},
             strategy: structuredClone(nationStrategies.blank),
             credits: 1000,
@@ -829,6 +785,7 @@
             color: '#2151AE',
             fill: '#89A8E6',
             countries: [],
+            adjacentCountries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
             credits: 40,
@@ -848,6 +805,7 @@
             color: '#C62A31',
             fill: '#F08D92',
             countries: [],
+            adjacentCountries: [],
             border: {},
             strategy: structuredClone(nationStrategies.offensive),
             credits: 100,
@@ -867,9 +825,10 @@
             color: '#AE7E21',
             fill: '#E5C089',
             countries: [],
+            adjacentCountries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
-            credits: 40,
+            credits: 10,
             items: structuredClone(items),
             cities: [],
             settlers: [],
@@ -886,6 +845,7 @@
             color: '#2184AE',
             fill: '#89CAE5',
             countries: [],
+            adjacentCountries: [],
             border: {},
             strategy: structuredClone(nationStrategies.defensive),
             credits: 40,
@@ -996,7 +956,7 @@
     </div>
     <div>
         currentTick {currentTick} | avgTickLength {avgTickLength}ms | tickTime {Math.round(tickTime)}ms |
-        Zoom {transform.k.toFixed(1)} | frameCount {frameCount} | fps {fps}
+        Zoom {transform.k.toFixed(1)} | frameCount {frameCount} | fps {fps} | round {currentRound}
     </div>
 
     <!-- {#key hovered}
@@ -1149,7 +1109,7 @@
 						<path
 							d={path(boundaryLine)}
 							fill="none"
-							stroke="#D6ADC1"
+							stroke="#ACBDCA"
 							stroke-width={0.5 / transform.k}
 							class="country"
 						/>
@@ -1166,7 +1126,7 @@
 					<path
 						d={path(boundaryLine)}
 						fill="none"
-						stroke="#D6ADC1"
+						stroke="#ACBDCA"
 						stroke-width={1 / transform.k}
 						class="country"
 					/>
@@ -1195,7 +1155,7 @@
                 class="country-label">{selected.properties.NAME_EN}</text
             > -->
 		<!-- {/if} -->
-		{#key airports}
+		<!-- {#key airports}
 			<svg
 				on:mouseover={() => {
 					hovered = {
@@ -1253,7 +1213,7 @@
 					stroke="white"
 				/>
 			</svg>
-		{/key}
+		{/key} -->
         <!-- {#each airports.features as airport}
             {#if airport.properties.visible}
                 {#if pointIsInViewbox(projection(airport.properties.center))}
@@ -1493,7 +1453,7 @@
         {/each}
 
         {#each nations as nation, i (nation.name)}
-            <Nation {jetController} isPlayer={i === 0} bind:itemSelected bind:this={nation.component} bind:nation bind:nations bind:movingEntities {mapTiler} {projection} {transform} {cityNamesDataset} {jetPatrolUI} bind:activeHudItem {path} {destroyNation} />
+            <Nation {jetController} {settlerController} isPlayer={i === 0} bind:itemSelected bind:this={nation.component} bind:nation bind:nations bind:movingEntities {mapTiler} {projection} {transform} {cityNamesDataset} {countryNamesDataset} {jetPatrolUI} bind:activeHudItem {path} {destroyNation} />
         {/each}
 
         <!-- {#each nations[0].jets as jet}                    
@@ -1547,8 +1507,8 @@
 					y={mapTiler(projection(data.properties.center))[1]}
 					font-size={12 / transform.k}
 					stroke-width={2 / transform.k}
-					fill={data.properties.NAME_EN === selected?.properties.NAME_EN ? '#0085FF' : '#814b6c'}
-					stroke={data.properties.NAME_EN === selected?.properties.NAME_EN ? 'white' : '#eef6e8'}
+					fill={data.properties.NAME_EN === selected?.properties.NAME_EN ? '#0085FF' : '#526F85'}
+					stroke={data.properties.NAME_EN === selected?.properties.NAME_EN ? 'white' : '#EDF7FF'}
 					class="country-name">{data.properties.NAME_EN}</text
 				>
 				<!-- {/if} -->
@@ -1705,7 +1665,8 @@
 
 	.map {
 		/* background: rgb(37, 36, 36); */
-		background: #92d4f9;
+		/* background: #92d4f9; */
+        background: #6EAFDC
 	}
 
 	path {

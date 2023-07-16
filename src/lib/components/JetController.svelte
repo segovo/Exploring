@@ -23,7 +23,7 @@
             jet.target = jetPosition
             jet.rotation = 45 - (jet.guard.angle * 180 / Math.PI) + 180
         } else {
-            jet.targetDistance = jet.targetDistance + 0.005/jet.pointDistance
+            jet.targetDistance = jet.targetDistance + 0.01 / jet.pointDistance
             jet.location = interpolate(jet.startLocation, jet.target, jet.targetDistance)
             jet.rotation = turf.bearing(jet.location, jet.target) + 45
         }
